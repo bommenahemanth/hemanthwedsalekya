@@ -72,11 +72,14 @@ const gcal=e=>'https://calendar.google.com/calendar/render?'+new URLSearchParams
 const icsText=s=>String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/([,;])/g,'\\$1');
 const fold=l=>{const out=[];let cur='';for(const ch of l){if(new TextEncoder().encode(cur+ch).length>73){out.push(cur);cur=' '+ch}else cur+=ch}out.push(cur);return out.join('\r\n')};
 const vevent=e=>['BEGIN:VEVENT',`UID:${e.id}-${WEDDING.year}@hemanth-alekya.wedding`,`DTSTAMP:${utc(new Date())}`,`DTSTART:${utc(startOf(e))}`,`DTEND:${utc(endOf(e))}`,`SUMMARY:${icsText(summary(e))}`,`DESCRIPTION:${icsText(details(e))}`,...(placeOf(e)?[`LOCATION:${icsText(placeOf(e))}`]:[]),'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Reminder','TRIGGER:-PT2H','END:VALARM','END:VEVENT'];
-const ics=list=>['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Hemanth & Alekya//Wedding Invitation//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH',...list.flatMap(vevent),'END:VCALENDAR'].map(fold).join('\r\n')+'\r\n';
-function download(name,text){const url=URL.createObjectURL(new Blob([text],{type:'text/calendar;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),5000)}
+const ics=list=>['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Hemanth & Alekya//Wedding Invitation//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Hemanth & Alekya’s Wedding',...list.flatMap(vevent),'END:VCALENDAR'].map(fold).join('\r\n')+'\r\n';
+// src/calendars.js uses the lines above to publish assets/cal/<event ids>.ics: Apple shows "Add All" for it, Google subscribes to it.
+const SITE=document.querySelector('meta[property="og:url"]')?.content||location.href;
+const calFile=list=>'assets/cal/'+list.map(e=>e.id).join('-')+'.ics';
+const gcalAll=list=>'https://calendar.google.com/calendar/render?cid='+encodeURIComponent(new URL(calFile(list),SITE).href.replace(/^https?:/,'webcal:'));
 const sheet=$('#cal');let current=null;
 function openSheet(e){current=e;$('#cal-title').textContent=e.title;$('#cal-when').textContent=`${weekday(e)}, ${e.d} ${MON[e.m-1]} ${WEDDING.year} · ${time12(e.t)} ${WEDDING.tzName}`;$('#cal-google').href=gcal(e);if(sheet.showModal)sheet.showModal();else sheet.setAttribute('open','')}
-$('#cal-ics').onclick=()=>{if(current)download(`${current.id}-hemanth-alekya.ics`,ics([current]))};
+$('#cal-ics').onclick=()=>{if(current)location.href=calFile([current])};
 sheet.addEventListener('click',e=>{const r=sheet.getBoundingClientRect();if(e.target===sheet&&(e.clientY<r.top||e.clientY>r.bottom||e.clientX<r.left||e.clientX>r.right))sheet.close()});
 
 /* ----- Subtle countdown on the envelope and opening screen; "Happily wed" once the muhurtham has passed ----- */
@@ -167,13 +170,13 @@ $('#hero-date').onclick=()=>openSheet(muhurtham);
  go(0,false);
 
  /* Full-screen viewer: tap a photo to open; swipe, arrows or keys to move; tap outside, X or Esc to close */
- const lb=$('#lightbox'),stage=$('#lb-stage');let li=0,lbOpen=false,lsx=null,lbSwiped=0,swiped=0;
+ const lb=$('#lightbox'),stage=$('#lb-stage');let li=0,lbOpen=false,lbY=0,lsx=null,lbSwiped=0,swiped=0;
  const srcOf=k=>{const im=slides[k].querySelector('img');return im.getAttribute('src')||im.dataset.src};
  function lbShow(k,dir){const old=stage.querySelector('img.cur');li=(k+n)%n;const im=new Image();im.src=srcOf(li);im.alt=`Hemanth and Alekya, photo ${li+1} of ${n}`;im.className='cur '+(dir?'in-'+dir:'in-open');stage.appendChild(im);
    if(old){old.className='out-'+dir;setTimeout(()=>old.remove(),1000)}
    $('#lb-count').textContent=`${li+1} / ${n}`;[li+1,li-1].forEach(j=>{new Image().src=srcOf((j+n)%n)})}
- function lbOpenAt(k){stop();lbOpen=true;stage.innerHTML='';lb.hidden=false;void lb.offsetWidth;lb.classList.add('show');root.classList.add('locked');lbShow(k);$('#lb-close').focus({preventScroll:true})}
- function lbClose(){if(!lbOpen)return;lbOpen=false;lb.classList.remove('show');setTimeout(()=>{if(!lbOpen){lb.hidden=true;stage.innerHTML=''}},500);if(opened&&$('#admin').hidden)root.classList.remove('locked');const changed=li!==i;go(li);start(changed?4300:3000)}
+ function lbOpenAt(k){stop();lbOpen=true;lbY=scrollY;stage.innerHTML='';lb.hidden=false;void lb.offsetWidth;lb.classList.add('show');root.classList.add('locked');lbShow(k);$('#lb-close').focus({preventScroll:true})}
+ function lbClose(){if(!lbOpen)return;lbOpen=false;lb.classList.remove('show');setTimeout(()=>{if(!lbOpen){lb.hidden=true;stage.innerHTML=''}},500);if(opened&&$('#admin').hidden){root.classList.remove('locked');scrollTo({top:lbY,behavior:'instant'})}const changed=li!==i;go(li);start(changed?4300:3000)}
  car.addEventListener('click',()=>{if(Date.now()-swiped>500)lbOpenAt(i%n)});
  lb.addEventListener('click',e=>{if(Date.now()-lbSwiped<500)return;if(e.target.closest('#lb-close'))return lbClose();if(e.target.closest('.lb-nav.next'))return lbShow(li+1,'next');if(e.target.closest('.lb-nav.prev'))return lbShow(li-1,'prev');if(!e.target.closest('img'))lbClose()});
  lb.addEventListener('touchstart',e=>{lsx=e.touches[0].clientX},{passive:true});
@@ -360,11 +363,11 @@ function showDone(r,justSent){rs.last=r;rs.mode='view';const done=$('#rsvp-done'
   const mine=going?WEDDING.events.filter(e=>(r.events||[]).includes(e.id)):[];
   const rows=[['RSVP',{yes:'Attending',maybe:'Tentative',no:'Can’t come',withdrawn:'Withdrawn'}[st]]].concat(going?[['Dates',ai>=0&&di>=0?`${dayText(ai)} → ${dayText(di)}`:''],['Party',`${party} ${party>1?'people':'person'}`],['Stay',r.accommodation?'Needed':'Not needed']]:[]);
   const wa=`https://wa.me/${WEDDING.contact.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`Namaste Hemanth! ${r.firstName} ${r.lastName} here. I just sent my RSVP: ${rows[0][1]}${going?` (${party} ${party>1?'people':'person'})`:''}.`)}`;
-  const cal=mine.length?`<div class="cal-box"><span class="lbl">Add ${mine.length>1?`your ${mine.length} events`:'it'} to your calendar</span><div class="cal-btns"><button class="btn solid" type="button" data-act="apple">${calSvg}Apple</button><button class="btn" type="button" data-act="google">${calSvg}Google</button></div><div class="collapse" id="g-wrap"><div><ul class="g-list">${mine.map(e=>`<li><span>${esc(e.title)}<small>${weekday(e).slice(0,3)} ${e.d} ${MON[e.m-1].slice(0,3)} · ${time12(e.t)}</small></span><a href="${esc(gcal(e))}" target="_blank" rel="noopener noreferrer" data-g>Add</a></li>`).join('')}</ul></div></div></div>`:'';
+  const cal=mine.length?`<div class="cal-box"><span class="lbl">Add ${mine.length>1?`your ${mine.length} events`:'it'} to your calendar</span><div class="cal-btns"><button class="btn solid" type="button" data-act="apple">${calSvg}Apple</button><button class="btn" type="button" data-act="google">${calSvg}Google</button></div><div class="collapse" id="g-wrap"><div><ul class="g-list">${mine.length>1?`<li class="g-all"><span>All ${mine.length} events at once<small>One tap adds a “Hemanth & Alekya’s Wedding” calendar</small></span><a href="${esc(gcalAll(mine))}" target="_blank" rel="noopener noreferrer" data-g>Add all</a></li>`:''}${mine.map(e=>`<li><span>${esc(e.title)}<small>${weekday(e).slice(0,3)} ${e.d} ${MON[e.m-1].slice(0,3)} · ${time12(e.t)}</small></span><a href="${esc(gcal(e))}" target="_blank" rel="noopener noreferrer" data-g>Add</a></li>`).join('')}</ul></div></div></div>`:'';
   done.className='rsvp-card done '+st;
   done.innerHTML=`<div class="tick" aria-hidden="true">${{yes:'✓',maybe:'?',no:'♡',withdrawn:'↺'}[st]}</div><h3>${esc(title)}</h3><p>${esc(lead)}</p><dl>${rows.filter(x=>x[1]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${cal}<div class="acts"><button class="btn solid" type="button" data-act="edit">${st==='withdrawn'?'RSVP again':'Change in plans? Update'}</button><a class="btn wa" style="background:linear-gradient(#1f8f4e,#13703a);color:#fff;border-color:#0f5c30" href="${esc(wa)}" target="_blank" rel="noopener noreferrer">${waSvg}Tell Hemanth on WhatsApp</a>${st!=='withdrawn'?'<button class="btn ghost" type="button" data-act="withdraw">Withdraw my RSVP</button>':''}</div>`;
   if(mine.length)setCollapse($('#g-wrap'),false);
-  done.hidden=false;form.hidden=true;exitEdit();if(justSent){document.dispatchEvent(new CustomEvent('hx:rsvp',{detail:{status:st}}));done.scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'})}}
+  done.hidden=false;form.hidden=true;exitEdit();if(justSent){document.dispatchEvent(new CustomEvent('hx:rsvp',{detail:{status:st}}));done.scrollIntoView({block:'center',behavior:reduce?'auto':'smooth'})}}
 function enterEdit(r){fill(r.status==='withdrawn'?Object.assign({},r,{status:''}):r);rs.mode='edit';$('#edit-name').textContent=r.firstName;setCollapse($('#find-top'),false);setCollapse($('#edit-banner'),true);msgChips();$('#rsvp-submit').textContent='Update RSVP';$('#rsvp-done').hidden=true;form.hidden=false;form.classList.add('in');form.scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'})}
 function exitEdit(){setCollapse($('#find-top'),true);setCollapse($('#edit-banner'),false);$('#rsvp-submit').textContent='Send RSVP';F.phone.placeholder='To update your RSVP later';msgChips()}
 $('#edit-cancel').onclick=()=>{if(rs.last)showDone(rs.last);else{rs.mode='new';exitEdit()}};
@@ -372,7 +375,7 @@ $('#msg-chips').addEventListener('click',e=>{const b=e.target.closest('button');
 $('#rsvp-done').addEventListener('click',async e=>{const g=e.target.closest('[data-g]');if(g){setTimeout(()=>{g.textContent='Added ✓';g.classList.add('added')},400);return}
   const b=e.target.closest('[data-act]');if(!b)return;const r=rs.last;
   if(b.dataset.act==='edit')enterEdit(r);
-  if(b.dataset.act==='apple')download('hemanth-alekya-wedding.ics',ics(WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id))));
+  if(b.dataset.act==='apple')location.href=calFile(WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id)));
   if(b.dataset.act==='google'){const mine=WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id));if(mine.length===1)window.open(gcal(mine[0]),'_blank','noopener');else{const w=$('#g-wrap');setCollapse(w,!w.classList.contains('open'))}}
   if(b.dataset.act==='withdraw'&&await ask('You can RSVP again any time if your plans change.',{title:'Withdraw your RSVP?',ok:'Yes, withdraw',cancel:'Keep my RSVP'})){b.disabled=true;try{const x=await api({action:'withdraw',id:rs.saved.id,secret:rs.saved.secret});if(x.ok)showDone(x.rsvp);else tell('Could not withdraw. Please try again.')}catch(err){tell(errText(err))}b.disabled=false}});
 const findForm=$('#find-form');
