@@ -20,7 +20,7 @@ const WEDDING={
   airports:[{code:'DFW',name:'Dallas Fort Worth International',origin:'DFW Airport, TX',miles:45,mins:50},{code:'DAL',name:'Dallas Love Field',origin:'Dallas Love Field, Dallas, TX',miles:46,mins:55}],
   // Slideshow photos after the first (inline) one; loaded only as they come up.
   photos:['photos/02.jpg','photos/03.jpg','photos/04.jpg','photos/05.jpg','photos/06.jpg'],
-  music:{src:'music/veena-shenai.m4a',credit:'Music: “Veena and Shenai” by Antti Luode, CC BY 3.0, via Wikimedia Commons (first 3 seconds trimmed)',link:'https://commons.wikimedia.org/wiki/File:Veena_And_Shenai_(Antti_Luode).mp3'},
+  music:{src:'music/pipa-says.m4a',credit:'Music: “What the Pipa Says” (琵琶語) by Lin Hai, © 2003 Wind Music International',link:'https://open.spotify.com/track/0XeklzlYWRCqgplYDVitZl'},
   events:[
     {id:'pelli',d:29,m:11,t:'18:00',hrs:3,icon:'kalash',accent:'#d9480f',title:'Pelli Koduku & Pelli Kuthuru',te:'పెళ్లికొడుకు · పెళ్లికూతురు',note:'Mangala snanam and blessings as the groom and bride are adorned for the wedding.'},
     {id:'sangeet',d:1,m:12,t:'18:00',hrs:4,icon:'music',accent:'#8e2453',title:'Sangeet / Cocktail Party',te:'సంగీత్',note:'An evening of music, dance and cheers. Come ready to celebrate!'},
