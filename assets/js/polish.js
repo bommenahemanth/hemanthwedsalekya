@@ -53,7 +53,7 @@
    for(let i=0;i<n;i++){const c=document.createElementNS(ns,'circle');c.setAttribute('cx',x0+i*gap);c.setAttribute('cy',cy);c.setAttribute('r',2.3);c.style.transitionDelay=`${.5+i*.12}s`;svg.append(c)}
    return svg;
  }
- [$('.events .tz-note'),$('#rsvp .reach')].forEach(anchor=>{
+ [$$('.events .tz-note').pop(),$('#rsvp .reach')].forEach(anchor=>{
    if(!anchor)return;const k=kolam();anchor.after(k);
    k.querySelectorAll('path').forEach(p=>p.style.setProperty('--len',Math.ceil(p.getTotalLength()+2)));
    if(calm())k.classList.add('ux-drawn');else once(k,()=>k.classList.add('ux-drawn'),.8);
@@ -97,6 +97,17 @@
      ],{duration:1900+Math.random()*900,easing:'cubic-bezier(.2,.6,.35,1)',fill:'forwards'}).onfinish=()=>{if(--left===0)layer.remove()};
    }
  }
+ // Akshintalu: turmeric rice showered over the confirmation, as elders do at the muhurtham.
+ function rice(el){
+   if(calm()||!el)return;
+   const r=el.getBoundingClientRect(),n=innerWidth<500?50:80;
+   for(let i=0;i<n;i++){
+     const g=document.createElement('i'),x=r.left+Math.random()*r.width,y0=-20-Math.random()*140,y1=Math.max(40,r.top)+r.height*(.25+Math.random()*.6),rot=Math.random()*720,dx=(Math.random()-.5)*70;
+     g.className='rice';g.setAttribute('aria-hidden','true');body.append(g);
+     g.animate([{transform:`translate(${x}px,${y0}px) rotate(0deg)`,opacity:1},{transform:`translate(${x+dx}px,${y1}px) rotate(${rot}deg)`,opacity:1,offset:.85},{transform:`translate(${x+dx*1.2}px,${y1+12}px) rotate(${rot+40}deg)`,opacity:0}],
+       {duration:1500+Math.random()*900,delay:Math.random()*600,easing:'cubic-bezier(.35,.1,.6,1)',fill:'both'}).onfinish=()=>g.remove();
+   }
+ }
  function chime(){
    const bgm=$('#bgm');if(!bgm||bgm.paused)return;
    try{
@@ -111,7 +122,7 @@
  }
  document.addEventListener('hx:rsvp',e=>{
    const st=e.detail&&e.detail.status,card=$('#rsvp-done');if(!card)return;
-   if(st==='yes'||st==='maybe')setTimeout(()=>{burst(card.querySelector('.tick')||card);chime()},700);
+   if(st==='yes'||st==='maybe')setTimeout(()=>{burst(card.querySelector('.tick')||card);rice(card);chime()},700);
    else{card.classList.remove('ux-soft');void card.offsetWidth;card.classList.add('ux-soft')}
  });
 
@@ -239,4 +250,27 @@
  /* ---------- Ready: replay a tap on the envelope that came in while the page was still loading ---------- */
  root.classList.remove('hx-loading');
  if(window.__hxEarlyOpen){window.__hxEarlyOpen=0;const open=$('#open');if(open)open.click()}
+ /* ---------- Gold ripple where a button is tapped ---------- */
+ document.addEventListener('pointerdown',e=>{
+   const b=e.target.closest('.page .btn,.sheet .btn,.ib');if(!b||b.disabled||calm())return;
+   if(getComputedStyle(b).position==='static')b.style.position='relative';
+   let w=b.querySelector(':scope>.rp-wrap');if(!w){w=document.createElement('span');w.className='rp-wrap';w.setAttribute('aria-hidden','true');b.append(w)}
+   const r=b.getBoundingClientRect(),d=document.createElement('i');d.className='rp';d.style.left=(e.clientX-r.left)+'px';d.style.top=(e.clientY-r.top)+'px';w.append(d);setTimeout(()=>d.remove(),700);
+ },{passive:true});
+
+ /* ---------- The photo frame tilts with the mouse, or with the phone where no permission prompt is needed ---------- */
+ const frame=$('.temple.invite .frame');
+ if(frame&&!calm()){
+   let raf=0,tx=0,ty=0;
+   const set=()=>{raf=0;frame.style.setProperty('--rx',ty.toFixed(2)+'deg');frame.style.setProperty('--ry',tx.toFixed(2)+'deg')};
+   const go=(x,y)=>{tx=x;ty=y;frame.classList.add('tilt');if(!raf)raf=requestAnimationFrame(set)};
+   frame.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;const r=frame.getBoundingClientRect();go(((e.clientX-r.left)/r.width-.5)*8,-((e.clientY-r.top)/r.height-.5)*8)});
+   frame.addEventListener('pointerleave',()=>go(0,0));
+   if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission!=='function')
+     addEventListener('deviceorientation',e=>{if(e.gamma==null||!frame.classList.contains('in'))return;go(Math.max(-6,Math.min(6,e.gamma/6)),Math.max(-6,Math.min(6,(e.beta-45)/8)))},{passive:true});
+ }
+
+ /* ---------- Diyas along the edges on event evenings (body.diya-night is set by the Today check) ---------- */
+ const nd=document.createElement('div');nd.className='night-diyas';nd.setAttribute('aria-hidden','true');
+ nd.innerHTML=Array.from({length:12},(_,i)=>`<i style="${i%2?'right':'left'}:6px;top:${12+Math.floor(i/2)*15}%;--f:${(i*.23).toFixed(2)}s"></i>`).join('');body.append(nd);
 })();

@@ -6,7 +6,7 @@ METHOD:PUBLISH
 X-WR-CALNAME:Hemanth & Alekya’s Wedding
 BEGIN:VEVENT
 UID:pelli-2026@hemanth-alekya.wedding
-DTSTAMP:20261101T182414Z
+DTSTAMP:20261101T200218Z
 DTSTART:20261130T000000Z
 DTEND:20261130T030000Z
 SUMMARY:Pelli Koduku & Pelli Kuthuru · Hemanth & Alekya’s Wedding
@@ -15,13 +15,18 @@ DESCRIPTION:Mangala snanam and blessings as the groom and bride are adorn
 LOCATION:Avula Ranch\, 8411 Shady Brook Ln\, Celina\, TX 75009
 BEGIN:VALARM
 ACTION:DISPLAY
+DESCRIPTION:Tomorrow: Pelli Koduku & Pelli Kuthuru
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
 DESCRIPTION:Reminder
 TRIGGER:-PT2H
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:sangeet-2026@hemanth-alekya.wedding
-DTSTAMP:20261101T182414Z
+DTSTAMP:20261101T200218Z
 DTSTART:20261202T000000Z
 DTEND:20261202T040000Z
 SUMMARY:Sangeet / Cocktail Party · Hemanth & Alekya’s Wedding
@@ -30,19 +35,29 @@ DESCRIPTION:An evening of music\, dance and cheers. Come ready to celebra
 LOCATION:Avula Ranch\, 8411 Shady Brook Ln\, Celina\, TX 75009
 BEGIN:VALARM
 ACTION:DISPLAY
+DESCRIPTION:Tomorrow: Sangeet / Cocktail Party
+TRIGGER:-P1D
+END:VALARM
+BEGIN:VALARM
+ACTION:DISPLAY
 DESCRIPTION:Reminder
 TRIGGER:-PT2H
 END:VALARM
 END:VEVENT
 BEGIN:VEVENT
 UID:pratham-2026@hemanth-alekya.wedding
-DTSTAMP:20261101T182414Z
+DTSTAMP:20261101T200218Z
 DTSTART:20261203T000000Z
 DTEND:20261203T030000Z
 SUMMARY:Pratham (Prathanam) · Hemanth & Alekya’s Wedding
 DESCRIPTION:Our families come together to exchange blessings and gifts.\n
  \nWith love\, Hemanth Bommena & Alekya Vemula
 LOCATION:Avula Ranch\, 8411 Shady Brook Ln\, Celina\, TX 75009
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Tomorrow: Pratham (Prathanam)
+TRIGGER:-P1D
+END:VALARM
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Reminder

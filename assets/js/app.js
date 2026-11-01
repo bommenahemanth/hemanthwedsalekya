@@ -20,6 +20,8 @@ const WEDDING={
   airports:[{code:'DFW',name:'Dallas Fort Worth International',origin:'DFW Airport, TX',miles:45,mins:50},{code:'DAL',name:'Dallas Love Field',origin:'Dallas Love Field, Dallas, TX',miles:46,mins:55}],
   // Slideshow photos after the first (inline) one; loaded only as they come up.
   photos:['photos/02.jpg','photos/03.jpg','photos/04.jpg','photos/05.jpg','photos/06.jpg'],
+  // Set to true (and PHOTOS_OPEN=yes on the backend) to let guests share photos.
+  photos:false,
   music:{src:'music/pipa-says.m4a',credit:'Music: “What the Pipa Says” (琵琶語) by Lin Hai, © 2003 Wind Music International',link:'https://open.spotify.com/track/0XeklzlYWRCqgplYDVitZl'},
   events:[
     {id:'pelli',d:29,m:11,t:'18:00',hrs:3,icon:'kalash',accent:'#d9480f',title:'Pelli Koduku & Pelli Kuthuru',te:'పెళ్లికొడుకు · పెళ్లికూతురు',note:'Mangala snanam and blessings as the groom and bride are adorned for the wedding.'},
@@ -63,7 +65,7 @@ const clockSvg='<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8
 $('#tl-list').innerHTML=WEDDING.events.map((e,i)=>`<li class="tl-item${e.main?' main':''}" style="--accent:${esc(e.accent)}"><div class="tl-node" aria-hidden="true"><svg viewBox="0 0 48 48">${ICONS[e.icon]||''}</svg></div><article class="card" data-reveal="left" style="--d:${(.05+i*.12).toFixed(2)}s" aria-labelledby="ev-${esc(e.id)}"><div class="card-top"><div class="date-badge" aria-hidden="true"><b>${e.d}</b><span>${MON[e.m-1].slice(0,3).toUpperCase()}</span><small>${weekday(e).slice(0,3)}</small></div><div><h3 id="ev-${esc(e.id)}">${esc(e.title)}</h3><p class="te" lang="te">${esc(e.te)}</p><p class="time">${clockSvg}<span><span class="sr-date" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">${weekday(e)} ${e.d} ${MON[e.m-1]}, </span>${time12(e.t)}</span></p></div></div><p class="note">${esc(e.note)}</p><svg class="card-art" viewBox="0 0 48 48" aria-hidden="true">${ICONS[e.icon]||''}</svg></article></li>`).join('');
 
 {const l=$('#venue-link'),h=mapHref(mapQuery({}));$('#venue-text').textContent=placeOf({});l.href=h;if(h.startsWith('http')){l.target='_blank';l.rel='noopener noreferrer'}
- $('#drive-line').textContent=WEDDING.airports.map(a=>`~${a.mins} min from ${a.code==='DAL'?'Love Field':a.code}`).join(' · ')}
+ $('#drive-line').textContent=WEDDING.airports.map(a=>`~${a.mins} min from ${a.code==='DAL'?'Love Field':a.code} Airport`).join(' · ')}
 
 /* ----- Calendar ----- */
 const utc=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
@@ -71,7 +73,7 @@ const summary=e=>`${e.title} · Hemanth & Alekya’s Wedding`,details=e=>`${e.no
 const gcal=e=>'https://calendar.google.com/calendar/render?'+new URLSearchParams({action:'TEMPLATE',text:summary(e),dates:utc(startOf(e))+'/'+utc(endOf(e)),details:details(e),location:placeOf(e)});
 const icsText=s=>String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/([,;])/g,'\\$1');
 const fold=l=>{const out=[];let cur='';for(const ch of l){if(new TextEncoder().encode(cur+ch).length>73){out.push(cur);cur=' '+ch}else cur+=ch}out.push(cur);return out.join('\r\n')};
-const vevent=e=>['BEGIN:VEVENT',`UID:${e.id}-${WEDDING.year}@hemanth-alekya.wedding`,`DTSTAMP:${utc(new Date())}`,`DTSTART:${utc(startOf(e))}`,`DTEND:${utc(endOf(e))}`,`SUMMARY:${icsText(summary(e))}`,`DESCRIPTION:${icsText(details(e))}`,...(placeOf(e)?[`LOCATION:${icsText(placeOf(e))}`]:[]),'BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Reminder','TRIGGER:-PT2H','END:VALARM','END:VEVENT'];
+const vevent=e=>['BEGIN:VEVENT',`UID:${e.id}-${WEDDING.year}@hemanth-alekya.wedding`,`DTSTAMP:${utc(new Date())}`,`DTSTART:${utc(startOf(e))}`,`DTEND:${utc(endOf(e))}`,`SUMMARY:${icsText(summary(e))}`,`DESCRIPTION:${icsText(details(e))}`,...(placeOf(e)?[`LOCATION:${icsText(placeOf(e))}`]:[]),'BEGIN:VALARM','ACTION:DISPLAY',`DESCRIPTION:${icsText('Tomorrow: '+e.title)}`,'TRIGGER:-P1D','END:VALARM','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Reminder','TRIGGER:-PT2H','END:VALARM','END:VEVENT'];
 const ics=list=>['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Hemanth & Alekya//Wedding Invitation//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH','X-WR-CALNAME:Hemanth & Alekya’s Wedding',...list.flatMap(vevent),'END:VCALENDAR'].map(fold).join('\r\n')+'\r\n';
 // src/calendars.js uses the lines above to publish assets/cal/<event ids>.ics: Apple shows "Add All" for it, Google subscribes to it.
 const SITE=document.querySelector('meta[property="og:url"]')?.content||location.href;
@@ -278,7 +280,7 @@ const CLICKS=[['.ux-qr-btn','qr'],['.ux-share','share'],['#music',()=>musicOn?'m
   ['[data-act=apple],#cal-ics','calendar_apple'],['[data-act=google],#cal-google','calendar_google'],['.g-all [data-g]','calendar_google_all'],['[data-g]','calendar_google_one'],['.date-btn','event_calendar'],
   ['#venue-link,a[href*="maps"],a[href^="geo:"]','map'],['.find-wa a','find_whatsapp'],['a[href*="wa.me"]','whatsapp'],['a[href^="tel:"]','call'],['a[href^="sms:"]','text'],['a[href^="mailto:"]','email'],
   ['.person',el=>'contact_'+((el.querySelector('b')||{}).textContent||'').toLowerCase().replace(/[^a-z]/g,'')],
-  ['#find-open,#find-top-open','find_open'],['#fab','rsvp_button'],['[data-act=withdraw]','rsvp_withdraw'],['[data-act=edit]','rsvp_edit'],
+  ['#find-top-open','find_open'],['#fab','rsvp_button'],['[data-act=withdraw]','rsvp_withdraw'],['[data-act=edit]','rsvp_edit'],
   ['.lb-nav','photo_next'],['.car-dots button','photo_dot'],['#carousel','photo_open'],
   ['.tl-item',el=>{const h=el.querySelector('h3[id^="ev-"]');return h?'event_'+h.id.slice(3):''}]];
 document.addEventListener('click',e=>{for(const[sel,k]of CLICKS){const el=e.target.closest(sel);if(el){const key=typeof k==='function'?k(el):k;if(key)track(key);break}}},{capture:true,passive:true});
@@ -312,7 +314,7 @@ function dayTips(a,b){
   if(a===4)return 'The wedding is Thursday 9:47 AM, so please arrive by Wednesday.';
   if(a>=1)return 'Please reach Dallas by Monday 4 PM if you can.';
   if(b<4)return 'The wedding is Thu 3 Dec at 9:47 AM.';
-  if(b===5)return 'Checkout Fri 10 AM, so flights after 1 PM work best.';
+  if(b===5)return 'Checkout Fri, 4 Dec at 10 AM from the Airbnb.';
   return ''}
 function setCollapse(el,open){el.classList.toggle('open',open);el.firstElementChild.inert=!open}
 F.arrival.addEventListener('input',()=>syncRange());F.departure.addEventListener('input',()=>syncRange());
@@ -393,20 +395,29 @@ const MSG={firstName:'Please enter your first name',lastName:'Please enter your 
 function showErrors(errs){form.querySelectorAll('[data-err]').forEach(el=>{const k=el.dataset.err,m=errs[k];el.classList.toggle('invalid',!!m);const er=el.querySelector(':scope > .err')||el.querySelector('.err');if(er)er.textContent=m?(typeof m==='string'&&m.length>12?m:MSG[k]||'Please check this'):''});
   const firstBad=form.querySelector('.invalid');if(firstBad){firstBad.scrollIntoView({block:'center',behavior:reduce?'auto':'smooth'});const inp=firstBad.querySelector('input,select');if(inp)inp.focus({preventScroll:true})}}
 const errText=e=>e&&e.code==='not_configured'?'RSVPs open very soon. Please try again later or message us on WhatsApp.':'We couldn’t reach the server. Your answers are still filled in, so please check your connection and try again.';
+// Server calls take a few seconds: the button spins and shows what is happening, then a green tick on success.
+function busyBtn(btn,steps){const html=btn.innerHTML;let k=0;btn.disabled=true;btn.classList.remove('ok');btn.classList.add('busy');
+  btn.innerHTML=`<i class="bspin" aria-hidden="true"></i><span class="btxt in" role="status">${esc(steps[0])}</span>`;
+  const t=setInterval(()=>{if(++k>=steps.length){clearInterval(t);return}const x=btn.querySelector('.btxt');if(x){x.classList.remove('in');void x.offsetWidth;x.textContent=steps[k];x.classList.add('in')}},1400);
+  return{async ok(msg){clearInterval(t);btn.classList.add('ok');btn.innerHTML=`<i class="bok" aria-hidden="true">✓</i><span class="btxt in" role="status">${esc(msg)}</span>`;await new Promise(r=>setTimeout(r,reduce?0:650))},
+    end(label){clearInterval(t);btn.classList.remove('busy','ok');if(label)btn.textContent=label;else btn.innerHTML=html;btn.disabled=false}}}
+const shake=el=>{el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')};
 form.addEventListener('submit',async ev=>{ev.preventDefault();$('#form-error').textContent='';
   const d=collect(),errs=clientErrors(d);showErrors(errs);if(Object.keys(errs).length)return;
-  const btn=$('#rsvp-submit'),label=btn.textContent;btn.disabled=true;btn.textContent='Sending…';
+  const editing=rs.mode==='edit',going=d.status==='yes'||d.status==='maybe';
+  const bb=busyBtn($('#rsvp-submit'),editing?['Updating your RSVP…','Saving your changes…','Letting Hemanth & Alekya know…','Almost done…']:['Sending your RSVP…',going?'Saving your dates…':'Saving your reply…','Letting Hemanth & Alekya know…','Almost done…']);
+  form.classList.add('sending');
   try{
     let r=rs.mode==='edit'&&rs.saved?await api({action:'update',id:rs.saved.id,secret:rs.saved.secret,rsvp:d}):await api({action:'create',rsvp:d});
     if(!r.ok&&r.error==='exists'&&rs.mode!=='edit'){const f=await api({action:'find',phone:d.phone,firstName:d.firstName});
       if(f.ok){rs.saved={id:f.id,secret:f.secret};r=await api({action:'update',id:f.id,secret:f.secret,rsvp:d})}
       else{$('#form-error').textContent='This WhatsApp number already has an RSVP under a different first name. Use “Find my RSVP” below, or message us.';return}}
-    if(r.ok){if(r.id)rs.saved={id:r.id,secret:r.secret};showDone(r.rsvp,true);return}
+    if(r.ok){if(r.id)rs.saved={id:r.id,secret:r.secret};await bb.ok(editing?'Updated':'Sent');showDone(r.rsvp,true);return}
     if(r.error==='invalid'){showErrors(r.fields||{});$('#form-error').textContent='Please check the highlighted fields.';return}
     if(r.error==='not_found'){rs.saved=null;rs.mode='new';$('#form-error').textContent='We couldn’t find your earlier RSVP. Please send it again.';return}
     $('#form-error').textContent=r.error==='rate_limited'?'Too many attempts. Please wait a few minutes and try again.':'Something went wrong. Please try again.'
   }catch(e){$('#form-error').textContent=errText(e)}
-  finally{btn.disabled=false;btn.textContent=label}});
+  finally{form.classList.remove('sending');bb.end(rs.mode==='edit'?'Update RSVP':'Send RSVP');if($('#form-error').textContent)shake($('#form-error'))}});
 function showDone(r,justSent){rs.last=r;rs.mode='view';const done=$('#rsvp-done'),st=r.status,going=st==='yes'||st==='maybe';
   const title={yes:`See you there, ${r.firstName}!`,maybe:`Thank you, ${r.firstName}`,no:`We’ll miss you, ${r.firstName}`,withdrawn:'Your RSVP is withdrawn'}[st];
   const lead={yes:'We can’t wait to celebrate with you.',maybe:'Please confirm when you can. You can update this any time.',no:'Thank you for letting us know. Your blessings mean the world to us.',withdrawn:'Changed your mind? You can RSVP again below.'}[st];
@@ -428,17 +439,17 @@ $('#rsvp-done').addEventListener('click',async e=>{const g=e.target.closest('[da
   if(b.dataset.act==='edit')enterEdit(r);
   if(b.dataset.act==='apple')location.href=calFile(WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id)));
   if(b.dataset.act==='google'){const mine=WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id));if(mine.length===1)window.open(gcal(mine[0]),'_blank','noopener');else{const w=$('#g-wrap');setCollapse(w,!w.classList.contains('open'))}}
-  if(b.dataset.act==='withdraw'&&await ask('You can RSVP again any time if your plans change.',{title:'Withdraw your RSVP?',ok:'Yes, withdraw',cancel:'Keep my RSVP'})){b.disabled=true;try{const x=await api({action:'withdraw',id:rs.saved.id,secret:rs.saved.secret});if(x.ok)showDone(x.rsvp);else tell('Could not withdraw. Please try again.')}catch(err){tell(errText(err))}b.disabled=false}});
+  if(b.dataset.act==='withdraw'&&await ask('You can RSVP again any time if your plans change.',{title:'Withdraw your RSVP?',ok:'Yes, withdraw',cancel:'Keep my RSVP'})){const bb=busyBtn(b,['Withdrawing…','Updating the guest list…','Almost done…']);try{const x=await api({action:'withdraw',id:rs.saved.id,secret:rs.saved.secret});if(x.ok){await bb.ok('Withdrawn');showDone(x.rsvp);return}tell('Could not withdraw. Please try again.')}catch(err){tell(errText(err))}bb.end()}});
 const findForm=$('#find-form');
 function openFind(){const f=findForm;f.cc.value=F.cc.value;f.ccx.value=F.ccx.value;ccSync(f);f.phone.value=F.phone.value;$('#find-error').textContent='';$('#find-help').hidden=true;$('#find').showModal()}
-$('#find-open').onclick=openFind;$('#find-top-open').onclick=openFind;
+$('#find-top-open').onclick=openFind;
 findForm.addEventListener('submit',async e=>{e.preventDefault();const f=findForm,er=$('#find-error');er.textContent='';$('#find-help').hidden=true;
   const pe=phoneError(phoneOf(f),false);if(pe){er.textContent=pe;return}
-  const btn=f.querySelector('[type=submit]');btn.disabled=true;
+  const bb=busyBtn(f.querySelector('[type=submit]'),['Looking up your number…','Finding your RSVP…','Almost there…']);f.classList.add('sending');
   try{const r=await api({action:'find',phone:phoneOf(f)});track(r.ok?'find_ok':'find_fail');
-    if(r.ok){rs.saved={id:r.id,secret:r.secret};rs.last=r.rsvp;$('#find').close();enterEdit(r.rsvp)}
-    else{er.textContent=r.error==='rate_limited'?'Too many attempts. Please wait a few minutes.':'We couldn’t find that number. Check it, or message Hemanth below.';if(r.error!=='rate_limited')findHelp(f)}}
-  catch(err){er.textContent=errText(err)}finally{btn.disabled=false}});
+    if(r.ok){rs.saved={id:r.id,secret:r.secret};rs.last=r.rsvp;await bb.ok(`Found ${nameCase(r.rsvp.firstName||'it')}`);$('#find').close();enterEdit(r.rsvp)}
+    else{er.textContent=r.error==='rate_limited'?'Too many attempts. Please wait a few minutes.':'We couldn’t find that number. Check it, or message Hemanth below.';if(r.error!=='rate_limited')findHelp(f);shake(f.querySelector('.phone'))}}
+  catch(err){er.textContent=errText(err);shake(f.querySelector('.phone'))}finally{f.classList.remove('sending');bb.end()}});
 // Ready-to-send WhatsApp notes to Hemanth (his Indian number has WhatsApp), most likely one first.
 function findHelp(f){const p=phoneOf(f),digits=String(p.number).replace(/\D/g,''),name=[F.firstName.value,F.lastName.value].map(s=>nameCase(s.trim())).filter(Boolean).join(' ');
   const me=`Namaste Hemanth! ${name?`This is ${name}. `:''}I couldn’t find my RSVP on the website${digits?` with my number ${p.cc?p.cc+' ':''}${digits}`:''}.`;
@@ -452,50 +463,106 @@ new IntersectionObserver(es=>es.forEach(e=>$('#fab').classList.toggle('away',e.i
 new IntersectionObserver(es=>es.forEach(e=>body.classList.toggle('form-focused',e.isIntersecting)),{threshold:.08}).observe($('#rsvp'));
 exitEdit();syncRange();steppers();showGoing();store.del('hx-rsvp');store.del('hx-draft');
 
+/* ----- Countdown, the wedding-week "Today" bar and evening diyas. ?now=2026-12-02T19:00 previews another moment. ----- */
+const NOW=(()=>{const q=new URLSearchParams(location.search).get('now'),t=q?Date.parse(q+(/[zZ]|[+-]\d\d:?\d\d$/.test(q)?'':WEDDING.tz)):NaN,skew=isNaN(t)?0:t-Date.now();return()=>Date.now()+skew})();
+const ctDate=t=>new Date(t).toLocaleDateString('en-CA',{timeZone:'America/Chicago'}),ctHour=t=>+new Date(t).toLocaleString('en-US',{timeZone:'America/Chicago',hour:'numeric',hourCycle:'h23'});
+let cdPrev=[];
+function tickCountdown(){const cd=$('#countdown');if(!cd)return;const now=NOW(),s=+startOf(muhurtham),e=+endOf(muhurtham);
+  if(now>=e){cd.innerHTML=`<span class="cd-done">Married on ${muhurtham.d} ${MON[muhurtham.m-1]} ${WEDDING.year} 🙏</span>`;return}
+  if(now>=s){cd.innerHTML='<span class="cd-done">The Muhurtham is happening now 🪔</span>';return}
+  const left=Math.floor((s-now)/1e3),vals=[Math.floor(left/86400),Math.floor(left%86400/3600),Math.floor(left%3600/60),left%60],units=['day','hr','min','sec'];
+  cd.innerHTML=vals.map((n,i)=>`<span class="cd-u"><b class="${cdPrev.length&&cdPrev[i]!==n?'flip':''}">${i?String(n).padStart(2,'0'):n}</b><small>${units[i]}${n===1?'':'s'}</small></span>`).join('<i aria-hidden="true">:</i>');
+  cd.setAttribute('aria-label',`${vals[0]} days, ${vals[1]} hours and ${vals[2]} minutes to the Muhurtham`);cdPrev=vals}
+let todayShut=false;
+function tickToday(){const bar=$('#today-bar'),now=NOW(),day=ctDate(now),evDays=new Set(WEDDING.events.map(e=>ctDate(startOf(e))));
+  body.classList.toggle('diya-night',evDays.has(day)&&ctHour(now)>=18);
+  const list=WEDDING.events.filter(e=>ctDate(startOf(e))===day&&+endOf(e)>now);
+  if(!list.length||todayShut||!body.classList.contains('opened')){bar.hidden=true;return}
+  const e=list[0],live=now>=+startOf(e),wa=`https://wa.me/${WEDDING.contact.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`Namaste Hemanth! I’m on my way to the ${e.title}.`)}`;
+  bar.style.setProperty('--accent',e.accent);
+  bar.innerHTML=`<span class="tb-ic" aria-hidden="true"><svg viewBox="0 0 48 48">${ICONS[e.icon]||''}</svg></span><span class="tb-t"><small>${live?'Happening now':'Today'}${list.length>1?` · ${list.length-1} more later`:''}</small><b>${esc(e.title)}</b><span>${time12(e.t)} · ${esc(WEDDING.venue.short||WEDDING.venue.name)}</span></span><a class="tb-b" href="${esc(mapHref(mapQuery(e)))}" target="_blank" rel="noopener noreferrer" aria-label="Directions">${mapSvg}</a><a class="tb-b wa" href="${esc(wa)}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Hemanth">${waSvg}</a><button type="button" class="tb-x" aria-label="Hide">✕</button>`;
+  if(bar.hidden){bar.hidden=false;bar.classList.remove('in');void bar.offsetWidth;bar.classList.add('in')}}
+$('#today-bar').addEventListener('click',e=>{if(e.target.closest('.tb-x')){todayShut=true;$('#today-bar').hidden=true}});
+tickCountdown();tickToday();setInterval(tickCountdown,1e3);setInterval(tickToday,15e3);
+document.addEventListener('hx:opening-complete',()=>setTimeout(tickToday,1200));
+
+/* ----- Guest photos: off until WEDDING.photos is true (and the backend has PHOTOS_OPEN=yes) ----- */
+const thumb=(id,w)=>`https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
+const photoTile=(p,fresh,src)=>`<a class="pd-tile${fresh?' fresh':''}" href="https://drive.google.com/file/d/${encodeURIComponent(p.fileId)}/view" target="_blank" rel="noopener noreferrer"><img src="${esc(src||thumb(p.fileId,600))}" alt="Photo shared by ${esc(p.name)}" loading="lazy" decoding="async"><span>${esc(p.name)}</span></a>`;
+async function loadPhotos(){try{const r=await api({action:'photos'});if(!r.ok||(!r.open&&!r.photos.length))return;
+  $('#share-photos').hidden=false;$('#pd-up').hidden=!r.open;$('#pd-grid').innerHTML=r.photos.map(p=>photoTile(p)).join('')||'<p class="wall-empty">No photos yet. Be the first!</p>'}catch{}}
+// Photos are shrunk to 1600px JPEGs in the browser so they upload quickly from phones.
+function shrink(file){return new Promise((res,rej)=>{const url=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{const k=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight)),w=Math.round(im.naturalWidth*k),h=Math.round(im.naturalHeight*k),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(im,0,0,w,h);URL.revokeObjectURL(url);const jpg=c.toDataURL('image/jpeg',.82);res({data:jpg.split(',')[1],w,h,preview:jpg})};
+  im.onerror=()=>{URL.revokeObjectURL(url);rej(new Error('bad'))};im.src=url})}
+$('#pd-file').addEventListener('change',async e=>{const files=[...e.target.files].slice(0,20),er=$('#pd-error'),name=$('#pd-name').value.trim();e.target.value='';er.textContent='';if(!files.length)return;
+  if(!name){er.textContent='Please add your name first';$('#pd-name').focus();shake(er);return}
+  const prog=$('#pd-progress');let ok=0;
+  for(const f of files){const li=document.createElement('li');li.innerHTML=`<i class="bspin" aria-hidden="true"></i><b>${esc(f.name)}</b><em>Preparing…</em>`;prog.append(li);
+    try{const s=await shrink(f);li.querySelector('em').textContent='Uploading…';const r=await api({action:'photo',name,data:s.data,w:s.w,h:s.h});if(!r.ok)throw new Error(r.error);
+      li.classList.add('done');li.querySelector('em').textContent='Shared ✓';ok++;$('#pd-grid .wall-empty')?.remove();$('#pd-grid').insertAdjacentHTML('afterbegin',photoTile(r.photo,true,s.preview))}
+    catch(err){li.classList.add('bad');li.querySelector('em').textContent=err.message==='closed'?'Photo sharing opens on 29 Nov':'Couldn’t upload, please try again'}
+    setTimeout(()=>{li.classList.add('out');setTimeout(()=>li.remove(),400)},3500)}
+  if(ok)track('photo_upload')});
+if(WEDDING.photos)document.addEventListener('hx:opening-complete',()=>setTimeout(loadPhotos,1500),{once:true});
+
 /* ----- Hidden admin dashboard: tap the temples at the bottom 3 times ----- */
 let taps=[],admPw='',admData=null;
 $('#admin-tap').addEventListener('click',()=>{const now=Date.now();taps=taps.filter(t=>now-t<1200).concat(now);if(taps.length>=3){taps=[];$('#adm-error').textContent='';$('#adm-form').pw.value='';$('#adm-login').showModal()}});
-$('#adm-form').addEventListener('submit',async e=>{e.preventDefault();const pw=e.target.pw.value,er=$('#adm-error'),btn=e.target.querySelector('[type=submit]');er.textContent='';btn.disabled=true;
-  try{const r=await api({action:'admin',password:pw});if(r.ok){admPw=pw;$('#adm-login').close();admData=r;renderAdmin();openAdmin()}else er.textContent='Incorrect password.'}
-  catch(err){er.textContent=err.code==='not_configured'?'Connect the RSVP backend first (apiUrl).':'Could not reach the server.'}finally{btn.disabled=false}});
+$('#adm-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.target,pw=f.pw.value,er=$('#adm-error'),btn=f.querySelector('[type=submit]'),lt=$('#adm-load-t');if(!pw){f.pw.focus();return}
+  er.textContent='';btn.disabled=true;f.classList.remove('shake','done');f.classList.add('busy');lt.textContent='Checking password…';
+  // The backend takes a few seconds, so the steps it is working through are shown meanwhile.
+  const steps=[[900,'Gathering RSVPs…'],[2200,'Counting visitors…'],[3800,'Drawing the charts…'],[6000,'Almost there…']].map(([ms,t])=>setTimeout(()=>{lt.textContent=t},ms));
+  try{const r=await api({action:'admin',password:pw});steps.forEach(clearTimeout);
+    if(r.ok){admPw=pw;admData=r;admSig=admSigOf(r);lt.textContent='Welcome back';f.classList.add('done');await new Promise(res=>setTimeout(res,450));$('#adm-login').close();renderAdmin();openAdmin()}
+    else{er.textContent='Incorrect password.';f.classList.add('shake')}}
+  catch(err){steps.forEach(clearTimeout);er.textContent=err.code==='not_configured'?'Connect the RSVP backend first (apiUrl).':'Could not reach the server.';f.classList.add('shake')}
+  finally{btn.disabled=false;f.classList.remove('busy','done')}});
 let admTimer=null;
-function openAdmin(){const a=$('#admin');a.classList.remove('quiet');a.hidden=false;root.classList.add('locked');a.scrollTop=0;clearInterval(admTimer);admTimer=setInterval(()=>{if(!$('#adm-edit').open&&!document.hidden)reloadAdmin().catch(()=>{})},60000)}
-function closeAdmin(){clearInterval(admTimer);$('#admin').hidden=true;admPw='';admData=null;admTab='overview';admKeep={};$('#admin').innerHTML='';if(opened)root.classList.remove('locked')}
+function openAdmin(){const a=$('#admin');a.classList.remove('leaving');a.hidden=false;root.classList.add('locked');a.scrollTop=0;clearInterval(admTimer);admTimer=setInterval(()=>{if(!$('#adm-edit').open&&!$('#adm-vdel').open&&!document.hidden)reloadAdmin().catch(()=>{})},60000)}
+function closeAdmin(){clearInterval(admTimer);const a=$('#admin');a.classList.add('leaving');setTimeout(()=>{a.hidden=true;a.classList.remove('leaving');a.innerHTML='';if(opened)root.classList.remove('locked')},380);admPw='';admData=null;admSessions=null;admSig='';admTab='overview';admKeep={}}
 const dKey=k=>{const i=RDAYS.findIndex(d=>d.key===k);return i<0?'':`${RDAYS[i].day} ${RDAYS[i].label}`};
 // Admin times are shown in Central Time, where the wedding is.
 const fmtTime=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleString('en-US',{timeZone:'America/Chicago',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' CT'};
 const STL={yes:'Attending',maybe:'Tentative',no:'Not attending',withdrawn:'Withdrawn'},GL={male:'M',female:'F',other:'Other'},TL={DFW:'DFW',DAL:'Love Field',drive:'Driving',other:'Other'},FL={veg:'Veg',nonveg:'Non-veg',jain:'Jain',vegan:'Vegan'};
 function bars(rows,two=true,legend='Solid = attending · striped = tentative'){const max=Math.max(1,...rows.map(r=>r.a+(r.b||0)));return`<div class="bars">${rows.map(r=>`<div class="bar"><span>${esc(r.label)}</span><span class="t"><i class="y" style="width:${r.a/max*100}%"></i>${two?`<i class="m" style="width:${(r.b||0)/max*100}%"></i>`:''}</span><span class="n">${r.a}${two&&r.b?` <small style="color:#a86a00">+${r.b}</small>`:''}</span></div>`).join('')}</div>${two&&legend?`<p class="legend">${legend}</p>`:''}`}
-function donut(parts){const tot=parts.reduce((a,p)=>a+p.v,0)||1;let off=25;return`<div class="donut"><svg viewBox="0 0 42 42" role="img" aria-label="Responses by status"><circle cx="21" cy="21" r="15.915" fill="none" stroke="#efe0bd" stroke-width="6"/>${parts.map(p=>{const len=p.v/tot*100,s=`<circle cx="21" cy="21" r="15.915" fill="none" stroke="${p.c}" stroke-width="6" stroke-dasharray="${len} ${100-len}" stroke-dashoffset="${off}"/>`;off-=len;return s}).join('')}<text x="21" y="23.5" text-anchor="middle" font-size="8" font-family="Cinzel,serif" fill="#6d1420">${tot===1&&!parts.some(p=>p.v)?0:tot}</text></svg><ul>${parts.map(p=>`<li><i style="background:${p.c}"></i>${esc(p.l)}: <b>${p.v}</b></li>`).join('')}</ul></div>`}
+function donut(parts){const tot=parts.reduce((a,p)=>a+p.v,0)||1;let off=25;return`<div class="donut"><svg viewBox="0 0 42 42" role="img" aria-label="Responses by status"><circle cx="21" cy="21" r="15.915" fill="none" stroke="#efe0bd" stroke-width="6"/>${parts.map(p=>{const len=p.v/tot*100,s=`<circle class="seg" cx="21" cy="21" r="15.915" fill="none" stroke="${p.c}" stroke-width="6" stroke-dasharray="${len} ${100-len}" stroke-dashoffset="${off}"/>`;off-=len;return s}).join('')}<text x="21" y="23.5" text-anchor="middle" font-size="8" font-family="Cinzel,serif" fill="#6d1420">${tot===1&&!parts.some(p=>p.v)?0:tot}</text></svg><ul>${parts.map(p=>`<li${p.k&&p.l!=='Other'?`${lever(p.k,p.l)} class="lever" tabindex="0" role="button"`:''}><i style="background:${p.c}"></i>${esc(p.l)}: <b>${p.v}</b></li>`).join('')}</ul></div>`}
 function histogram(days,cap){const max=Math.max(1,...days.map(d=>d.yes+d.maybe)),lbl=i=>`${RDAYS[i].day} ${RDAYS[i].label}${RDAYS[i].morning?' am':''}`;
   const stay=(d,i)=>{if(i===0||i===days.length-1)return'—';const t=d.stayingYes+d.stayingMaybe;return`<span class="${cap&&t>cap?'neg':''}">${d.stayingYes}${d.stayingMaybe?` <small>+${d.stayingMaybe}</small>`:''}${cap?` / ${cap}`:''}</span>`};
   return`<div class="hgram">${days.map((d,i)=>`<div class="hcol"><span class="htot">${d.yes}${d.maybe?`<small>+${d.maybe}</small>`:''}</span><div class="hstack" style="height:${(d.yes+d.maybe)/max*100}%">${d.maybe?`<i class="m" style="flex:${d.maybe}"></i>`:''}${d.yesKids?`<i class="k" style="flex:${d.yesKids}"></i>`:''}${d.yesAdults?`<i class="a" style="flex:${d.yesAdults}"></i>`:''}</div><span class="hday">${esc(RDAYS[i].day)}<br>${esc(RDAYS[i].label)}${RDAYS[i].morning?' am':''}</span></div>`).join('')}</div>
   <p class="legend"><i class="lg a"></i>Adults<i class="lg k"></i>Kids<i class="lg m"></i>Tentative</p>
   <table class="plan"><thead><tr><th>Day</th><th>Adults</th><th>Kids</th><th>Tentative</th><th>Staying</th></tr></thead><tbody>${days.map((d,i)=>`<tr><td>${esc(lbl(i))}</td><td>${d.yesAdults}</td><td>${d.yesKids}</td><td>${d.maybe}</td><td>${stay(d,i)}</td></tr>`).join('')}</tbody></table>`}
-function renderAdmin(){const r=admData,s=r.stats,v=r.visits,g=s.accommodation.gender;
+const ICO={backup:'<svg viewBox="0 0 24 24"><path d="M4 7h16v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M3 4h18v3H3zM10 11h4"/></svg>',add:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',refresh:'<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',ok:'<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',csv:'<svg viewBox="0 0 24 24"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="m15 8 4 4-4 4M19 12H9"/></svg>',filter:'<svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7.5V19l-4 1v-7.5Z"/></svg>',trash:'<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg>',reset:'<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4v5h5"/></svg>',clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>'};
+const timeOnly=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'})+' CT'};
+function admChips(r){const s=r.stats,m=r.mail;
+  return[`<span class="ac" title="${esc(fmtTime(r.generatedAt))}">${ICO.clock}<b id="adm-upd">${esc(timeOnly(r.generatedAt))}</b></span>`,`<span class="ac g"><b>${s.responses.total}</b> response${s.responses.total===1?'':'s'}</span>`,
+    s.responses.withdrawn?`<span class="ac m"><b>${s.responses.withdrawn}</b> withdrawn</span>`:'',s.dedup&&s.dedup.skipped?`<span class="ac" title="Family members who replied separately are counted once"><b>${s.dedup.skipped}</b> counted once</span>`:'',
+    m&&m.at?(m.ok?`<span class="ac b" title="Last email ${esc(fmtTime(m.at))}">✉ <b>${m.quota}</b> emails left</span>`:`<span class="ac r" title="${esc(m.error)}">✉ Emails failing</span>`):''].join('')}
+function renderAdmin(quiet){const r=admData,s=r.stats,g=s.accommodation.gender;admSessions=visitSessions(r.visits.log);
   const hc=h=>h.changes.find(c=>c.field==='headcount'),moves=r.history.filter(hc),wk=Date.now()-7*864e5;
   const net=moves.filter(h=>new Date(h.at)>wk).reduce((a,h)=>a+(+hc(h).after)-(+hc(h).before),0);
-  const kp=[['g',s.people.yes,'Attending'],['a',s.people.maybe,'Tentative'],['r',s.responses.no,'Declined'],['',s.responses.total,'Responses'],['',s.people.adultsYes,'Adults'],['',s.people.kidsYes,'Kids'],['',s.people.plusOnesYes,'Plus-ones'],['',s.accommodation.people,'Need stay'],[s.accommodation.capacity&&s.accommodation.peakNight>s.accommodation.capacity?'r':'',`${s.accommodation.peakNight}${s.accommodation.capacity?` / ${s.accommodation.capacity}`:''}`,'Peak night'],[net<0?'r':net>0?'g':'',`${net>0?'+':net<0?'−':''}${Math.abs(net)}`,'Net change 7d'],['',v.unique??v.total,'Unique visitors']];
-  const kpis=list=>`<div class="kpis">${list.map(([c,n,l])=>`<div class="kpi ${c}"><b>${n}</b><span>${l}</span></div>`).join('')}</div>`;
-  const mail=r.mail&&r.mail.at?(r.mail.ok?`Last email ${esc(fmtTime(r.mail.at))} · ${r.mail.quota} left today`:`<b class="neg">Emails failing: ${esc(r.mail.error)}</b>`):'';
-  const tabs=[['overview','Overview',''],['guests','Guests',r.rsvps.length],['history','History',r.history.length],['visits','Analytics',v.unique??'']];
+  const people=new Set(admSessions.map(x=>x.key)).size;
+  const kp=[['g',s.people.yes,'Attending'],['a',s.people.maybe,'Tentative'],['r',s.responses.no,'Declined'],['',s.responses.total,'Responses'],['',s.people.adultsYes,'Adults'],['',s.people.kidsYes,'Kids'],['',s.people.plusOnesYes,'Plus-ones'],['',s.accommodation.people,'Need stay'],[s.accommodation.capacity&&s.accommodation.peakNight>s.accommodation.capacity?'r':'',`${s.accommodation.peakNight}${s.accommodation.capacity?` / ${s.accommodation.capacity}`:''}`,'Peak night'],[net<0?'r':net>0?'g':'',`${net>0?'+':net<0?'−':''}${Math.abs(net)}`,'Net change 7d'],['',people,'Unique visitors']];
+  const X=r.extras||{},tabs=[['overview','Overview',''],['guests','Guests',r.rsvps.length],['invites','Invites',(X.invites||[]).length||''],['plan','Rooms & food',''],['checkin','Check-in',''],...(X.photosOpen||(X.photos||[]).length?[['bless','Photos',(X.photos||[]).length||'']]:[]),['history','History',r.history.length],['visits','Analytics',people]];
   const pane=(k,html)=>`<section class="adm-pane" id="adm-${k}" role="tabpanel" aria-labelledby="adm-tab-${k}"${admTab===k?'':' hidden'}>${html}</section>`;
-  $('#admin').innerHTML=`<div class="adm-wrap"><header class="adm-top"><div class="adm-title"><h2>RSVP dashboard</h2><p class="adm-sub">Updated ${esc(fmtTime(r.generatedAt))}${mail?` · ${mail}`:''}</p></div>
-   <div class="adm-btns"><button class="btn solid" data-a="add">＋ Add guest</button><button class="btn adm-ic" data-a="refresh"><span aria-hidden="true">↻</span> Refresh</button><button class="btn adm-ic" data-a="csv"><span aria-hidden="true">⤓</span> CSV</button><button class="btn adm-ic close" data-a="close" aria-label="Close dashboard"><span aria-hidden="true">✕</span> Close</button></div></header>
+  const ib=(a,cls,label,icon)=>`<button type="button" class="ib ${cls}" data-a="${a}" aria-label="${label}" title="${label}">${icon}</button>`;
+  $('#admin').innerHTML=`<div class="adm-wrap${quiet?' quiet':''}"><header class="adm-top"><h2>RSVP dashboard</h2><div class="adm-chips" id="adm-chips">${admChips(r)}</div>
+   <div class="adm-btns">${ib('add','add','Add a guest',ICO.add)}${ib('refresh','refresh','Refresh',`<span class="i1">${ICO.refresh}</span><span class="i2">${ICO.ok}</span>`)}${ib('csv','csv','Download CSV',ICO.csv)}${ib('backup','backup','Email me a backup',ICO.backup)}${ib('close','out','Log out',ICO.out)}</div></header>
    <nav class="adm-tabs" role="tablist" aria-label="Dashboard sections">${tabs.map(([k,l,n])=>`<button type="button" role="tab" id="adm-tab-${k}" data-tab="${k}" aria-controls="adm-${k}" aria-selected="${admTab===k}">${l}${n!==''?`<small>${n}</small>`:''}</button>`).join('')}</nav>
-  ${pane('overview',`${kpis(kp)}<p class="adm-note">${s.responses.total} responses${s.responses.withdrawn?` · ${s.responses.withdrawn} withdrawn`:''}${s.dedup&&s.dedup.skipped?` · ${s.dedup.skipped} counted once (family replied separately)`:''} · refreshes every minute</p>
+  ${pane('overview',`${kpis(kp)}
   <div class="adm-grid">
-   <div class="panel wide"><h3>Daily headcount · plan food &amp; stay</h3>${histogram(s.perDay,s.accommodation.capacity)}<p class="legend">Stays start 30 Nov (29 Nov arrivals don’t need one); the ranch Airbnb holds ${s.accommodation.capacity||15}. Staying guests by gender: Male ${g.male} · Female ${g.female} · Other ${g.other} · Not given ${g.unspecified} · Kids ${s.accommodation.kids}.</p></div>
+   <div class="panel wide"><h3>Daily headcount · plan food &amp; stay</h3>${histogram(s.perDay,s.accommodation.capacity)}<div class="adm-chips left"><span class="ac">Stays from 30 Nov</span><span class="ac">Airbnb holds <b>${s.accommodation.capacity||15}</b></span><span class="ac">Staying: <b>${g.male}</b> M · <b>${g.female}</b> F${g.other?` · <b>${g.other}</b> other`:''}${g.unspecified?` · <b>${g.unspecified}</b> not given`:''} · <b>${s.accommodation.kids}</b> kids</span></div></div>
    <div class="panel"><h3>Changes in plans</h3>${moves.length?`<ol class="adm-tl">${moves.slice(0,20).map(h=>histItem(h)).join('')}</ol>`:'<p class="legend">No changes yet.</p>'}</div>
    <div class="panel"><h3>Headcount by event</h3>${bars(s.perEvent.map(e=>({label:e.label,a:e.yes,b:e.maybe})))}</div>
    <div class="panel"><h3>Responses</h3>${donut([{l:'Attending',v:s.responses.yes,c:'#2f7d43'},{l:'Tentative',v:s.responses.maybe,c:'#e0a100'},{l:'Not attending',v:s.responses.no,c:'#a3162b'},{l:'Withdrawn',v:s.responses.withdrawn,c:'#9b8f80'}])}</div>
   </div>`)}
   ${pane('guests',`<div class="adm-tools"><input type="search" id="adm-q" placeholder="Search name, phone, note" aria-label="Search guests"><select id="adm-st" aria-label="Filter by reply"><option value="">All replies</option><option value="yes">Attending</option><option value="maybe">Tentative</option><option value="no">Not attending</option><option value="withdrawn">Withdrawn</option></select><select id="adm-stay" aria-label="Filter by stay"><option value="">Any stay</option><option value="1">Needs stay</option></select><select id="adm-sort" aria-label="Sort guests"><option value="updatedAt">Recently updated</option><option value="name">Name A–Z</option><option value="party">Largest party</option><option value="arrival">Arriving first</option></select><div class="adm-view" role="group" aria-label="Show guests as">${['cards','table'].map(k=>`<button type="button" data-view="${k}" aria-pressed="${admView===k}">${k==='cards'?'Cards':'Table'}</button>`).join('')}</div></div><div class="${admView==='table'?'adm-tbl-wrap':'gc-list'}" id="adm-rows"></div>`)}
-  ${pane('history',`<div class="adm-tools two"><input type="search" id="adm-hq" placeholder="Search by guest name" aria-label="Search history"><select id="adm-ha" aria-label="Filter by change"><option value="">Every change</option><option value="created">New RSVPs</option><option value="updated">Updates</option><option value="withdrawn">Withdrawals</option><option value="admin">Changes by you</option><option value="headcount">Headcount changes</option></select></div><p class="adm-note">Every change is kept, including RSVPs that were later deleted.</p><ol class="adm-tl" id="adm-hist"></ol>`)}
-  ${pane('visits',visitsPane(v))}
+  ${pane('history',`<div class="adm-tools two"><input type="search" id="adm-hq" placeholder="Search by guest name" aria-label="Search history"><select id="adm-ha" aria-label="Filter by change"><option value="">Every change</option><option value="created">New RSVPs</option><option value="updated">Updates</option><option value="withdrawn">Withdrawals</option><option value="admin">Changes by you</option><option value="headcount">Headcount changes</option></select></div><div class="adm-chips left"><span class="ac" id="hg-count"></span><span class="ac">Kept even for deleted RSVPs</span><button type="button" class="ac hg-all" data-a="hg-all">Expand all</button></div><div class="hg-list" id="adm-hist"></div>`)}
+  ${pane('invites',invitesPane())}${pane('plan',planPane())}${pane('checkin',checkinPane())}${pane('bless',blessPane())}
+  ${pane('visits',visitsPane())}
   </div>`;
   const keep=admKeep;['q','st','stay','sort','hq','ha'].forEach(k=>{const el=$('#adm-'+k);if(el&&keep[k])el.value=keep[k]});
-  admRows();admHist()}
+  admRows();admHist();hostRender();anRender({noReveal:true});admReveal($('#admin'),quiet)}
 let admTab='overview',admKeep={},admView='cards';
 function guestTable(list,hist){const EV=Object.fromEntries(WEDDING.events.map(e=>[e.id,e]));
   const rows=list.map(x=>{const going=x.status==='yes'||x.status==='maybe',adults=1+x.plusOnes.length,name=`${esc(x.firstName)} ${esc(x.lastName)}`;
@@ -503,52 +570,234 @@ function guestTable(list,hist){const EV=Object.fromEntries(WEDDING.events.map(e=
   return`<table class="adm-tbl guests"><thead><tr><th>Guest</th><th>Reply</th><th>Party</th><th>Dates</th><th>Stay</th><th>Events</th><th>Plus-ones</th><th>WhatsApp</th><th>Note</th><th>Replied (CT)</th><th>Updated (CT)</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="12" class="adm-empty">No RSVPs match.</td></tr>'}</tbody></table>`}
 const dur=s=>!s?'—':s>=3600?`${Math.floor(s/3600)}h ${Math.round(s%3600/60)}m`:s>=60?`${Math.floor(s/60)}m ${s%60}s`:`${s}s`;
 const SEC={opened:'Opened',events:'Events',rsvp:'RSVP',photos:'Photos'};
-const EVL={envelope_open:'Opened the envelope',music_on:'Turned music on',music_off:'Turned music off',qr:'Opened the QR code',share:'Tapped Share',map:'Opened the map',calendar_apple:'Added to Apple Calendar',calendar_google:'Added to Google Calendar',calendar_google_all:'Google: added all events',calendar_google_one:'Google: added one event',event_calendar:'Opened an event’s calendar',whatsapp:'Tapped a WhatsApp link',call:'Tapped a call link',text:'Tapped a text link',email:'Tapped an email link',find_open:'Opened “Find my RSVP”',find_ok:'Found their RSVP',find_fail:'Couldn’t find their RSVP',find_whatsapp:'Messaged Hemanth after not finding it',rsvp_button:'Tapped the RSVP button',rsvp_start:'Started the RSVP form',rsvp_yes:'Chose “Attending”',rsvp_maybe:'Chose “Tentative”',rsvp_no:'Chose “Can’t come”',rsvp_error:'Hit a form error',rsvp_sent:'Sent or updated an RSVP',rsvp_edit:'Opened “Update”',rsvp_withdraw:'Tapped “Withdraw”',photo_open:'Opened a photo',photo_next:'Swiped photos in full view',photo_dot:'Tapped photo dots',scroll_25:'Scrolled a quarter',scroll_50:'Scrolled halfway',scroll_75:'Scrolled three quarters',scroll_100:'Reached the end',saw_events:'Saw the events',saw_rsvp:'Saw the RSVP form',saw_photos:'Saw the photos'};
+const EVL={envelope_open:'Opened the envelope',music_on:'Turned music on',music_off:'Turned music off',qr:'Opened the QR code',share:'Tapped Share',map:'Opened the map',calendar_apple:'Added to Apple Calendar',calendar_google:'Added to Google Calendar',calendar_google_all:'Google: added all events',calendar_google_one:'Google: added one event',event_calendar:'Opened an event’s calendar',whatsapp:'Tapped a WhatsApp link',call:'Tapped a call link',text:'Tapped a text link',email:'Tapped an email link',find_open:'Opened “Find my RSVP”',find_ok:'Found their RSVP',find_fail:'Couldn’t find their RSVP',find_whatsapp:'Messaged Hemanth after not finding it',rsvp_button:'Tapped the RSVP button',rsvp_start:'Started the RSVP form',rsvp_yes:'Chose “Attending”',rsvp_maybe:'Chose “Tentative”',rsvp_no:'Chose “Can’t come”',rsvp_error:'Hit a form error',rsvp_sent:'Sent or updated an RSVP',rsvp_edit:'Opened “Update”',rsvp_withdraw:'Tapped “Withdraw”',photo_open:'Opened a photo',photo_next:'Swiped photos in full view',photo_dot:'Tapped photo dots',scroll_25:'Scrolled a quarter',scroll_50:'Scrolled halfway',scroll_75:'Scrolled three quarters',scroll_100:'Reached the end',saw_events:'Saw the events',saw_rsvp:'Saw the RSVP form',saw_photos:'Saw the photos',photo_upload:'Shared photos'};
 const evLabel=k=>EVL[k]||(k.startsWith('event_')?'Tapped event: '+((WEDDING.events.find(e=>'event_'+e.id===k)||{}).title||k.slice(6)):k.startsWith('contact_')?'Opened contact: '+k.slice(8).replace(/^./,c=>c.toUpperCase()):k.replace(/_/g,' '));
 const PAL=['#a3162b','#c9a24a','#2f7d43','#2c5d8a','#8e2453','#e0a100','#5b3a8a','#d9480f','#6b3c12','#9b8f80'];
-// Pie (donut) of the top 6 with the rest grouped as “Other”.
-function pie(list){list=(list||[]).filter(x=>x.n);if(!list.length)return'<p class="legend">No data yet.</p>';const head=list.slice(0,6),rest=list.slice(6).reduce((a,x)=>a+x.n,0);
-  return donut(head.map((x,i)=>({l:x.label,v:x.n,c:PAL[i]})).concat(rest?[{l:'Other',v:rest,c:PAL[9]}]:[]))}
-// Ranked table with a share bar, for places and similar lists.
-function rankTable(list,total,head='People',n=15){list=(list||[]).filter(x=>x.n);if(!list.length)return'<p class="legend">No data yet.</p>';
-  return`<div class="adm-tbl-wrap mini"><table class="adm-tbl rank"><thead><tr><th>#</th><th>Name</th><th>${head}</th><th>Share</th></tr></thead><tbody>${list.slice(0,n).map((x,i)=>{const p=total?Math.round(x.n/total*100):0;return`<tr><td>${i+1}</td><td>${esc(x.label)}</td><td><b>${x.n}</b></td><td><span class="share"><i style="width:${p}%"></i></span> ${p}%</td></tr>`}).join('')}</tbody></table></div>`}
-function columns(vals,labels,title){const max=Math.max(1,...vals);return`<div class="hours" style="grid-template-columns:repeat(${vals.length},1fr)">${vals.map((n,i)=>`<i style="height:${n/max*100}%" title="${esc(labels[i])} · ${n} ${title}"></i>`).join('')}</div>`}
-function visitsPane(v){const A=v.analytics||{},F=A.funnel||{},P=A.people||0,pct=(a,b)=>b?Math.round(a/b*100)+'%':'—',top=(list,n=8)=>(list||[]).length?bars(list.slice(0,n).map(x=>({label:x.label,a:x.n})),false):'<p class="legend">No data yet.</p>';
-  const k=[['g',v.unique??'—','Unique visitors'],['',A.returning??0,'Returning'],['',A.newPeople??0,'First-time'],['',v.total,'Total visits'],['a',v.uniqueToday??'—','Unique today'],['',v.today,'Visits today'],['',dur(A.avgDuration),'Avg time on page'],['',dur(A.medianDuration),'Typical time'],['',(A.avgScroll??0)+'%','Avg scrolled'],['',pct(F.opened,F.visited),'Opened envelope'],[F.sent?'g':'',pct(F.sent,F.visited),'Sent an RSVP'],['',A.avgOpenAfter?A.avgOpenAfter+'s':'—','Time to open'],['',A.avgLoadMs?(A.avgLoadMs/1000).toFixed(1)+'s':'—','Page load']];
+function columns(vals,labels,title){const max=Math.max(1,...vals);return`<div class="hours" style="grid-template-columns:repeat(${vals.length},1fr)">${vals.map((n,i)=>`<i style="height:${n/max*100}%;--i:${i}" title="${esc(labels[i])} · ${n} ${title}"></i>`).join('')}</div>`}
+const kpis=list=>`<div class="kpis">${list.map(([c,n,l,d])=>`<div class="kpi ${c}"><b>${n}</b><span>${l}</span>${d||''}</div>`).join('')}</div>`;
+/* ----- Analytics: de-duplicated, filtered and charted in the browser from one row per visit ----- */
+const CTF=new Intl.DateTimeFormat('en-US',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23',weekday:'short'});
+const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function ctParts(t){const o={};CTF.formatToParts(new Date(t)).forEach(p=>{o[p.type]=p.value});return{d:`${o.year}-${o.month}-${o.day}`,h:(+o.hour)%24,wd:WD.indexOf(o.weekday)}}
+const RSTEP={'':0,started:1,sent:2,no:2,maybe:2,yes:2};
+const joinPlace=(...x)=>x.filter(Boolean).join(', ');
+const sizeOf=w=>!w?'':w<360?'Small phone':w<440?'Phone':w<820?'Large phone / small tablet':w<1200?'Tablet / laptop':'Desktop';
+// Every breakdown, and the filter that clicking one of its rows applies.
+const DIM={country:{l:'Country',f:s=>s.country},region:{l:'State',f:s=>joinPlace(s.region,s.cc)},city:{l:'City',f:s=>joinPlace(s.city,s.region,s.cc)},device:{l:'Device',f:s=>s.device},os:{l:'System',f:s=>s.os},browser:{l:'Browser',f:s=>s.browser},source:{l:'Came from',f:s=>s.source},size:{l:'Screen',f:s=>sizeOf(s.w)},net:{l:'Connection',f:s=>s.net&&s.net.toUpperCase()},theme:{l:'Display',f:s=>s.theme&&(s.theme==='dark'?'Dark mode':'Light mode')},tz:{l:'Time zone',f:s=>s.tz},lang:{l:'Language',f:s=>s.lang}};
+let admSessions=null,admSig='',anShown=40;
+const AF={range:'all',from:'',to:'',h0:0,h1:23,who:'',dims:{}};
+// Reloads and new tabs within 30 minutes of the same person's last activity count as one visit.
+function visitSessions(log){const rows=(log||[]).filter(r=>r&&r.at).slice().sort((a,b)=>a.at<b.at?-1:a.at>b.at?1:0),last={},out=[],GAP=30*60e3;
+  rows.forEach(r=>{const key=r.p||'v:'+(r.id||r.at),t=Date.parse(r.at),s=last[key],d=+r.dur||0;
+    if(s&&t-s.end<GAP){s.n++;s.dur+=d;s.scroll=Math.max(s.scroll,+r.scroll||0);(r.sec||[]).forEach(x=>s.sec.add(x));Object.entries(r.act||{}).forEach(([k,n])=>{s.act[k]=(s.act[k]||0)+(+n||0)});if((RSTEP[r.rsvp]||0)>(RSTEP[s.rsvp]||0))s.rsvp=r.rsvp;s.load=s.load||+r.load||0;s.open=s.open||+r.open||0;s.end=Math.max(s.end,t+d*1e3);return}
+    const c=ctParts(t),n=Object.assign({},r,{key,t,end:t+d*1e3,n:1,dur:d,scroll:+r.scroll||0,sec:new Set(r.sec||[]),act:Object.assign({},r.act||{}),load:+r.load||0,open:+r.open||0,d:c.d,h:c.h,wd:c.wd});
+    last[key]=n;out.push(n)});
+  const per={};out.forEach(s=>{per[s.key]=(per[s.key]||0)+1});out.forEach(s=>{s.multi=per[s.key]>1});
+  return out}
+const dayKey=t=>ctParts(t).d;
+function afRange(){const today=dayKey(Date.now()),back=n=>dayKey(Date.now()-n*864e5);
+  return AF.range==='today'?[today,today]:AF.range==='7d'?[back(6),today]:AF.range==='30d'?[back(29),today]:AF.range==='custom'?[AF.from||'0000-00-00',AF.to||'9999-99-99']:['0000-00-00','9999-99-99']}
+function afApply(all,range){const [a,b]=range||afRange(),hOk=h=>AF.h0<=AF.h1?h>=AF.h0&&h<=AF.h1:h>=AF.h0||h<=AF.h1,dims=Object.entries(AF.dims);
+  return all.filter(s=>s.d>=a&&s.d<=b&&hOk(s.h)&&(!AF.who||(AF.who==='new')===!s.multi)&&dims.every(([k,v])=>DIM[k].f(s)===v))}
+function vstats(ss){const people={};ss.forEach(s=>{(people[s.key]=people[s.key]||[]).push(s)});
+  const P=Object.values(people),n=P.length,avg=l=>l.length?Math.round(l.reduce((a,b)=>a+b,0)/l.length):0;
+  const top=f=>{const c={};P.forEach(vs=>new Set(vs.map(f).filter(Boolean)).forEach(k=>{c[k]=(c[k]||0)+1}));return Object.keys(c).map(k=>({label:k,n:c[k]})).sort((a,b)=>b.n-a.n||(a.label<b.label?-1:1))};
+  const by={};Object.keys(DIM).forEach(k=>{by[k]=top(DIM[k].f)});
+  const hours=Array(24).fill(0),weekdays=Array(7).fill(0);ss.forEach(s=>{hours[s.h]++;if(s.wd>=0)weekdays[s.wd]++});
+  const durs=ss.map(s=>s.dur).filter(d=>d>0).sort((a,b)=>a-b);
+  const ev={};ss.forEach(s=>Object.entries(s.act).forEach(([k,v])=>{if(!(+v))return;const e=ev[k]=ev[k]||{label:k,p:new Set(),total:0};e.p.add(s.key);e.total+=+v}));
+  const ret=P.filter(vs=>vs[0].multi).length,has=f=>P.filter(vs=>vs.some(f)).length,days={};
+  ss.forEach(s=>{const d=days[s.d]=days[s.d]||{date:s.d,visits:0,p:new Set()};d.visits++;d.p.add(s.key)});
+  return{people:n,visits:ss.length,returning:ret,newPeople:n-ret,by,hours,weekdays,
+    avgDuration:avg(durs),medianDuration:durs.length?durs[Math.floor(durs.length/2)]:0,avgScroll:avg(ss.map(s=>s.scroll)),avgLoadMs:avg(ss.map(s=>s.load).filter(Boolean)),avgOpenAfter:avg(ss.map(s=>s.open).filter(Boolean)),
+    events:Object.values(ev).map(e=>({label:e.label,people:e.p.size,total:e.total})).sort((a,b)=>b.people-a.people||b.total-a.total),
+    funnel:{visited:n,opened:has(s=>s.sec.has('opened')),events:has(s=>s.sec.has('events')),rsvpSeen:has(s=>s.sec.has('rsvp')),photos:has(s=>s.sec.has('photos')),started:has(s=>(RSTEP[s.rsvp]||0)>=1),sent:has(s=>(RSTEP[s.rsvp]||0)>=2)},
+    days}}
+// Every day in the chosen range (up to the last 60), so quiet days show as gaps rather than disappearing.
+function dayList(days,all){const keys=Object.keys(days).sort(),[a,b]=afRange();if(!keys.length)return[];
+  let from=a>'0000-00-00'?a:(all.length?all[0].d:keys[0]),to=b<'9999-99-99'?b:dayKey(Date.now());if(to<keys[keys.length-1])to=keys[keys.length-1];
+  const out=[];for(let t=Date.parse(to+'T12:00:00Z');out.length<60;t-=864e5){const k=new Date(t).toISOString().slice(0,10);if(k<from)break;out.unshift(days[k]?{date:k,visits:days[k].visits,unique:days[k].p.size}:{date:k,visits:0,unique:0})}return out}
+const hourLabel=h=>`${h%12||12} ${h<12?'am':'pm'}`;
+function visitsPane(){const ranges=[['today','Today'],['7d','7 days'],['30d','30 days'],['all','All time'],['custom','Custom']];
+  return`<div class="af" id="af"><div class="af-row"><div class="af-seg" role="group" aria-label="Date range">${ranges.map(([k,l])=>`<button type="button" data-range="${k}" aria-pressed="${AF.range===k}">${l}</button>`).join('')}</div>
+   <button type="button" class="ib sm filt" data-a="af-more" aria-label="More filters" title="More filters" aria-expanded="false">${ICO.filter}<i class="badge" id="af-n" hidden></i></button><button type="button" class="ib sm del" data-a="vdel" aria-label="Delete visits" title="Delete visits">${ICO.trash}</button></div>
+   <div class="collapse${AF.range==='custom'?' open':''}" id="af-custom"><div><div class="af-row dates"><label>From <input type="date" id="af-from" value="${esc(AF.from)}"></label><label>To <input type="date" id="af-to" value="${esc(AF.to)}"></label></div></div></div>
+   <div class="collapse" id="af-more"><div><div class="af-grid">
+    <label>Time of day <span class="af-pair"><select id="af-h0" aria-label="From hour">${Array.from({length:24},(_,h)=>`<option value="${h}"${AF.h0===h?' selected':''}>${hourLabel(h)}</option>`).join('')}</select><i>to</i><select id="af-h1" aria-label="To hour">${Array.from({length:24},(_,h)=>`<option value="${h}"${AF.h1===h?' selected':''}>${hourLabel(h)}</option>`).join('')}</select></span></label>
+    <label>Visitors <select id="af-who"><option value="">Everyone</option><option value="new"${AF.who==='new'?' selected':''}>First-time only</option><option value="ret"${AF.who==='ret'?' selected':''}>Returning only</option></select></label>
+    ${['country','device','source'].map(k=>`<label>${DIM[k].l} <select data-dim="${k}"><option value="">Any</option></select></label>`).join('')}
+   </div></div></div>
+   <div class="af-chips" id="af-chips"></div></div><div id="adm-an"></div>`}
+function afSync(){const all=admSessions||[],A0=vstats(all);
+  $$('#af [data-dim]').forEach(sel=>{const k=sel.dataset.dim,cur=AF.dims[k]||'';sel.innerHTML=`<option value="">Any</option>`+A0.by[k].map(x=>`<option${x.label===cur?' selected':''}>${esc(x.label)}</option>`).join('')});
+  const chips=Object.entries(AF.dims).map(([k,v])=>`<button type="button" class="fchip" data-undim="${k}">${esc(DIM[k].l)}: <b>${esc(v)}</b><i aria-hidden="true">✕</i></button>`);
+  if(AF.who)chips.push(`<button type="button" class="fchip" data-unwho>${AF.who==='new'?'First-time':'Returning'}<i aria-hidden="true">✕</i></button>`);
+  if(AF.h0!==0||AF.h1!==23)chips.push(`<button type="button" class="fchip" data-unhours>${hourLabel(AF.h0)} – ${hourLabel(AF.h1)}<i aria-hidden="true">✕</i></button>`);
+  if(chips.length>1)chips.push(`<button type="button" class="fchip clear" data-a="af-reset">${ICO.reset}Clear all</button>`);
+  $('#af-chips').innerHTML=chips.join('');const n=$('#af-n');n.hidden=!chips.length;n.textContent=Object.keys(AF.dims).length+(AF.who?1:0)+(AF.h0!==0||AF.h1!==23?1:0);
+  $$('#af [data-range]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.range===AF.range)))}
+// Charts whose rows act as filters: tap a row to narrow everything to it.
+const lever=(k,label)=>DIM[k]?` data-dim-k="${k}" data-dim-v="${esc(label)}"`:'';
+function anPie(k,A){const list=A.by[k].filter(x=>x.n);if(!list.length)return'<p class="legend">No data yet.</p>';const head=list.slice(0,6),rest=list.slice(6).reduce((a,x)=>a+x.n,0);
+  return donut(head.map((x,i)=>({l:x.label,v:x.n,c:PAL[i],k})).concat(rest?[{l:'Other',v:rest,c:PAL[9]}]:[]))}
+function anBars(k,A,n=10){const list=A.by[k].slice(0,n);return list.length?`<div class="bars">${list.map(x=>{const max=A.by[k][0].n||1;return`<div class="bar lever"${lever(k,x.label)} tabindex="0" role="button"><span>${esc(x.label)}</span><span class="t"><i class="y" style="width:${x.n/max*100}%"></i></span><span class="n">${x.n}</span></div>`}).join('')}</div>`:'<p class="legend">No data yet.</p>'}
+function anRank(k,A,n=12){const list=A.by[k].filter(x=>x.n),P=A.people;if(!list.length)return'<p class="legend">No data yet.</p>';
+  return`<div class="adm-tbl-wrap mini"><table class="adm-tbl rank"><thead><tr><th>#</th><th>${esc(DIM[k].l)}</th><th>People</th><th>Share</th></tr></thead><tbody>${list.slice(0,n).map((x,i)=>{const p=P?Math.round(x.n/P*100):0;return`<tr class="lever"${lever(k,x.label)} tabindex="0"><td data-v="${i+1}">${i+1}</td><td>${esc(x.label)}</td><td data-v="${x.n}"><b>${x.n}</b></td><td data-v="${p}"><span class="share"><i style="width:${p}%"></i></span> ${p}%</td></tr>`}).join('')}</tbody></table></div>${list.length>n?`<p class="legend">Top ${n} of ${list.length}. Tap one to filter.</p>`:''}`}
+function linkBoard(ss){const by={};ss.forEach(s=>{const k=s.source||'Direct / unknown',b=by[k]=by[k]||{p:new Set(),sent:new Set(),open:new Set()};b.p.add(s.key);if((RSTEP[s.rsvp]||0)>=2)b.sent.add(s.key);if(s.sec.has('opened'))b.open.add(s.key)});
+  const rows=Object.entries(by).map(([k,b])=>({k,p:b.p.size,o:b.open.size,s:b.sent.size})).sort((a,b)=>b.s-a.s||b.p-a.p);if(!rows.length)return'<p class="legend">No visits in this range.</p>';
+  return`<div class="adm-tbl-wrap mini"><table class="adm-tbl rank"><thead><tr><th>#</th><th>Link</th><th>People</th><th>Opened</th><th>Sent RSVP</th><th>Conversion</th></tr></thead><tbody>${rows.map((r,i)=>{const c=r.p?Math.round(r.s/r.p*100):0;return`<tr class="lever"${lever('source',r.k)} tabindex="0"><td data-v="${i+1}">${i+1}</td><td>${esc(r.k)}</td><td data-v="${r.p}"><b>${r.p}</b></td><td data-v="${r.o}">${r.o}</td><td data-v="${r.s}"><b>${r.s}</b></td><td data-v="${c}"><span class="share"><i style="width:${c}%"></i></span> ${c}%</td></tr>`}).join('')}</tbody></table></div>`}
+function anRender(o={}){const el=$('#adm-an');if(!el)return;if(!o.keep)anShown=40;afSync();
+  const all=admSessions||[],ss=afApply(all),A=vstats(ss),F=A.funnel,P=A.people,pct=(a,b)=>b?Math.round(a/b*100)+'%':'—';
+  // The same filters over the equally long period just before, for the arrows on the main numbers.
+  const [ra,rb]=afRange(),span=ra>'0000-00-00'&&rb<'9999-99-99'?Math.round((Date.parse(rb)-Date.parse(ra))/864e5)+1:0,shift=n=>new Date(Date.parse(ra)-n*864e5).toISOString().slice(0,10);
+  const B=span?vstats(afApply(all,[shift(span),shift(1)])):null;
+  const dl=(now,was)=>{if(!B||!was&&!now)return'';if(!was)return'<small class="dl up">new</small>';const c=Math.round((now-was)/was*100);return c?`<small class="dl ${c>0?'up':'down'}" title="vs the ${span} day${span>1?'s':''} before">${c>0?'▲':'▼'} ${Math.abs(c)}%</small>`:'<small class="dl">=</small>'};
+  const k=[['g',P,'Unique visitors',dl(P,B&&B.people)],['',A.returning,'Returning'],['',A.newPeople,'First-time'],['',A.visits,'Visits',dl(A.visits,B&&B.visits)],['',dur(A.avgDuration),'Avg time on page'],['',dur(A.medianDuration),'Typical time'],['',A.avgScroll+'%','Avg scrolled'],['',pct(F.opened,F.visited),'Opened envelope'],[F.sent?'g':'',pct(F.sent,F.visited),'Sent an RSVP',dl(F.sent,B&&B.funnel.sent)],['',A.avgOpenAfter?A.avgOpenAfter+'s':'—','Time to open'],['',A.avgLoadMs?(A.avgLoadMs/1000).toFixed(1)+'s':'—','Page load']];
   const steps=[['Visited',F.visited],['Opened the envelope',F.opened],['Saw the events',F.events],['Reached the RSVP form',F.rsvpSeen],['Started an RSVP',F.started],['Sent an RSVP',F.sent],['Saw the photos',F.photos]];
-  const daily=(v.daily||[]).slice(-30),dLabel=d=>new Date(d.date+'T12:00').toLocaleDateString([],{month:'short',day:'numeric'});
-  const dmax=Math.max(1,...daily.map(d=>d.visits));
-  const dailyChart=daily.length?`<div class="dcols">${daily.map(d=>{const u=d.unique??d.visits,r=Math.max(0,d.visits-u);return`<div title="${esc(dLabel(d))}: ${u} unique, ${d.visits} visits"><i class="r" style="height:${r/dmax*100}%"></i><i class="u" style="height:${u/dmax*100}%"></i></div>`}).join('')}</div><div class="hours-l"><span>${esc(dLabel(daily[0]))}</span><span>${esc(dLabel(daily[daily.length-1]))}</span></div><p class="legend"><i class="lg a"></i>Unique visitors<i class="lg m"></i>Repeat visits</p>`:'<p class="legend">No visits yet.</p>';
-  const evs=(A.events||[]),evRows=evs.map((e,i)=>`<tr><td>${i+1}</td><td>${esc(evLabel(e.label))}</td><td><b>${e.people}</b></td><td><span class="share"><i style="width:${P?Math.round(e.people/P*100):0}%"></i></span> ${pct(e.people,P)}</td><td>${e.total}</td></tr>`).join('');
-  const recent=(A.recent||[]).map(r=>`<tr><td>${esc(fmtTime(r.at))}</td><td>${r.who?`<code>${esc(r.who)}</code>`:'—'}${r.returning?' <span class="tag-chip ret">returning</span>':''}</td><td>${esc(r.place||'—')}</td><td>${esc([r.device,r.os].filter(Boolean).join(' · '))}<br><small>${esc([r.browser,r.size,r.net&&r.net.toUpperCase(),r.theme==='dark'?'dark mode':''].filter(Boolean).join(' · '))}</small></td><td><span class="tag-chip src">${esc(r.source||'—')}</span></td><td>${dur(r.duration)}${r.openAfter?`<br><small>opened after ${r.openAfter}s</small>`:''}</td><td>${r.scroll?r.scroll+'%':'—'}</td><td>${(r.sections||[]).map(s=>`<span class="tag-chip">${esc(SEC[s]||s)}</span>`).join('')||'—'}</td><td>${(r.actions||[]).filter(s=>!/^(scroll_|saw_)/.test(s)).map(s=>`<span class="tag-chip act">${esc(evLabel(s))}</span>`).join('')||'—'}</td><td>${r.rsvp?`<span class="pill ${r.rsvp==='started'?'maybe':esc(r.rsvp)}">${r.rsvp==='started'?'Started':STL[r.rsvp]||'Sent'}</span>`:'—'}</td><td>${esc(r.tz||'—')}</td></tr>`).join('');
-  const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  return `<div class="kpis">${k.map(([c,n,l])=>`<div class="kpi ${c}"><b>${n}</b><span>${l}</span></div>`).join('')}</div><p class="adm-note">No cookies or stored IDs. People are told apart by IP address, kept only as a scrambled code, so a family on one Wi‑Fi counts once and phones on mobile data may count twice. Place comes from the IP: right for the country, roughly right for the city. Breakdowns count people, not page loads. Microsoft Clarity gets the same events for its recordings and heatmaps.</p>
+  const daily=dayList(A.days,all),dLabel=d=>new Date(d.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}),dmax=Math.max(1,...daily.map(d=>d.visits));
+  const dailyChart=daily.length?`<div class="dcols">${daily.map((d,i)=>{const u=d.unique,r=Math.max(0,d.visits-u);return`<div style="--i:${i}" title="${esc(dLabel(d))}: ${u} ${u===1?'person':'people'}, ${d.visits} visit${d.visits===1?'':'s'}"><i class="r" style="height:${r/dmax*100}%"></i><i class="u" style="height:${u/dmax*100}%"></i></div>`}).join('')}</div><div class="hours-l"><span>${esc(dLabel(daily[0]))}</span><span>${esc(dLabel(daily[daily.length-1]))}</span></div><p class="legend"><i class="lg a"></i>People<i class="lg m"></i>Repeat visits</p>`:'<p class="legend">No visits in this range.</p>';
+  const evRows=A.events.map((e,i)=>`<tr><td data-v="${i+1}">${i+1}</td><td>${esc(evLabel(e.label))}</td><td data-v="${e.people}"><b>${e.people}</b></td><td data-v="${e.people}"><span class="share"><i style="width:${P?Math.round(e.people/P*100):0}%"></i></span> ${pct(e.people,P)}</td><td data-v="${e.total}">${e.total}</td></tr>`).join('');
+  const recent=ss.slice().reverse(),rows=recent.slice(0,anShown).map(r=>`<tr><td data-v="${r.t}">${esc(fmtTime(r.at))}${r.n>1?`<br><small>${r.n} loads, counted once</small>`:''}</td><td>${r.p?`<code>${esc(r.p.slice(0,6))}</code>`:'—'}${r.multi?' <span class="tag-chip ret">returning</span>':''}</td><td>${esc(joinPlace(r.city,r.region,r.country)||'—')}</td><td>${esc([r.device,r.os].filter(Boolean).join(' · '))}<br><small>${esc([r.browser,sizeOf(r.w),r.net&&r.net.toUpperCase(),r.theme==='dark'?'dark mode':''].filter(Boolean).join(' · '))}</small></td><td><span class="tag-chip src">${esc(r.source||'—')}</span></td><td data-v="${r.dur}">${dur(r.dur)}${r.open?`<br><small>opened after ${r.open}s</small>`:''}</td><td data-v="${r.scroll}">${r.scroll?r.scroll+'%':'—'}</td><td>${[...r.sec].map(s=>`<span class="tag-chip">${esc(SEC[s]||s)}</span>`).join('')||'—'}</td><td>${Object.keys(r.act).filter(s=>r.act[s]>0&&!/^(scroll_|saw_)/.test(s)).map(s=>`<span class="tag-chip act">${esc(evLabel(s))}</span>`).join('')||'—'}</td><td>${r.rsvp?`<span class="pill ${r.rsvp==='started'?'maybe':esc(r.rsvp)}">${r.rsvp==='started'?'Started':STL[r.rsvp]||'Sent'}</span>`:'—'}</td><td>${esc(r.tz||'—')}</td></tr>`).join('');
+  el.innerHTML=`${kpis(k)}<div class="adm-chips left"><span class="ac">No cookies</span><span class="ac">IPs kept scrambled</span><span class="ac">Reloads within 30 min count once</span><span class="ac">Charts count people</span><span class="ac">Times in CT</span></div>
   <div class="adm-grid">
-   <div class="panel wide"><h3>Visitors · last 30 days</h3>${dailyChart}</div>
+   <div class="panel wide"><h3>Visitors by day</h3>${dailyChart}</div>
    <div class="panel funnel"><h3>How far people got</h3>${bars(steps.map(([l,n])=>({label:`${l} · ${pct(n||0,F.visited)}`,a:n||0})),false)}</div>
-   <div class="panel"><h3>New vs returning</h3>${pie(A.returningSplit)}</div>
-   <div class="panel"><h3>Countries</h3>${pie(A.countries)}${rankTable(A.countries,P,'People',10)}</div>
-   <div class="panel"><h3>States &amp; regions</h3>${top(A.regions,10)}</div>
-   <div class="panel wide"><h3>Cities</h3>${rankTable(A.cities,P,'People',20)}</div>
-   <div class="panel"><h3>Came from</h3>${pie(A.sources)}<p class="legend">Add ?src=family (or any word) to links you share to see them here. The QR code reports as “QR code”, the Share button as “Shared link”.</p></div>
-   <div class="panel"><h3>Devices</h3>${pie(A.devices)}</div>
-   <div class="panel"><h3>Phone &amp; computer systems</h3>${pie(A.os)}</div>
-   <div class="panel"><h3>Browsers &amp; apps</h3>${pie(A.browsers)}</div>
-   <div class="panel"><h3>Screen sizes</h3>${pie(A.sizes)}</div>
-   <div class="panel"><h3>Connection &amp; display</h3>${top(A.networks)}<h3 style="margin-top:14px">Light or dark mode</h3>${pie(A.themes)}</div>
-   <div class="panel"><h3>Time of day (Central)</h3>${columns(A.hours||[],(A.hours||[]).map((_,h)=>`${h}:00`),'visits')}<div class="hours-l"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div></div>
-   <div class="panel"><h3>Day of the week</h3>${bars((A.weekdays||[]).map((n,i)=>({label:WD[i],a:n})),false)}</div>
-   <div class="panel wide"><h3>Everything people did</h3>${evRows?`<div class="adm-tbl-wrap mini"><table class="adm-tbl rank"><thead><tr><th>#</th><th>What</th><th>People</th><th>Share of visitors</th><th>Times</th></tr></thead><tbody>${evRows}</tbody></table></div>`:'<p class="legend">No taps recorded yet.</p>'}</div>
-   <div class="panel"><h3>Their time zones</h3>${top(A.timezones)}</div>
-   <div class="panel"><h3>Languages</h3>${top(A.languages)}</div>
-  </div>
-  <div class="panel wide" style="margin-top:12px"><h3>Recent visits</h3><div class="adm-tbl-wrap"><table class="adm-tbl"><thead><tr><th>When (CT)</th><th>Visitor</th><th>Place</th><th>Device</th><th>Came from</th><th>Time</th><th>Scrolled</th><th>Saw</th><th>Did</th><th>RSVP</th><th>Time zone</th></tr></thead><tbody>${recent||'<tr><td colspan="11" class="adm-empty">No visits recorded yet.</td></tr>'}</tbody></table></div></div>`}
+   <div class="panel"><h3>New vs returning</h3>${donut([{l:'First-time',v:A.newPeople,c:PAL[0]},{l:'Returning',v:A.returning,c:PAL[3]}])}</div>
+   <div class="panel"><h3>Countries</h3>${anPie('country',A)}${anRank('country',A,10)}</div>
+   <div class="panel"><h3>States &amp; regions</h3>${anBars('region',A)}</div>
+   <div class="panel wide"><h3>Cities</h3>${anRank('city',A,20)}</div>
+   <div class="panel"><h3>Came from</h3>${anPie('source',A)}</div>
+   <div class="panel wide"><h3>Links that brought guests</h3>${linkBoard(ss)}<div class="linkgen"><input id="lg-name" placeholder="Name or group, e.g. Meghana or office" aria-label="Who the link is for"><button type="button" class="ib sm" data-a="lg-copy" aria-label="Copy link" title="Copy link">${ICO.csv}</button></div><p class="legend" id="lg-out">Make a personal link to see who each person’s sharing brings in. The short is.gd link can’t carry this tag.</p></div>
+   <div class="panel"><h3>Devices</h3>${anPie('device',A)}</div>
+   <div class="panel"><h3>Phone &amp; computer systems</h3>${anPie('os',A)}</div>
+   <div class="panel"><h3>Browsers &amp; apps</h3>${anPie('browser',A)}</div>
+   <div class="panel"><h3>Screen sizes</h3>${anPie('size',A)}</div>
+   <div class="panel"><h3>Connection &amp; display</h3>${anBars('net',A)}<h3 style="margin-top:14px">Light or dark mode</h3>${anPie('theme',A)}</div>
+   <div class="panel"><h3>Time of day (CT)</h3>${columns(A.hours,A.hours.map((_,h)=>hourLabel(h)),'visits')}<div class="hours-l"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div></div>
+   <div class="panel"><h3>Day of the week</h3>${bars(A.weekdays.map((n,i)=>({label:WD[i],a:n})),false)}</div>
+   <div class="panel wide"><h3>Everything people did</h3>${evRows?`<div class="adm-tbl-wrap mini"><table class="adm-tbl rank"><thead><tr><th>#</th><th>What</th><th>People</th><th>Share of visitors</th><th>Times</th></tr></thead><tbody>${evRows}</tbody></table></div>`:'<p class="legend">No taps in this range.</p>'}</div>
+   <div class="panel"><h3>Their time zones</h3>${anBars('tz',A,8)}</div>
+   <div class="panel"><h3>Languages</h3>${anBars('lang',A,8)}</div>
+   <div class="panel wide"><h3>Visits <small class="h3n">${recent.length}</small></h3><input type="search" class="an-q" id="an-q" placeholder="Search place, device, source…" aria-label="Search visits"><div class="adm-tbl-wrap"><table class="adm-tbl"><thead><tr><th>When (CT)</th><th>Visitor</th><th>Place</th><th>Device</th><th>Came from</th><th>Time</th><th>Scrolled</th><th>Saw</th><th>Did</th><th>RSVP</th><th>Time zone</th></tr></thead><tbody>${rows||'<tr><td colspan="11" class="adm-empty">No visits in this range.</td></tr>'}</tbody></table></div>${recent.length>anShown?`<button type="button" class="btn more-btn" data-a="an-more">Show ${Math.min(40,recent.length-anShown)} more</button>`:''}</div>
+  </div>`;
+  if(!o.noReveal)admReveal(el,o.instant)}
+// Panels fade up as they scroll into view; their bars, columns and pies draw in at the same moment.
+let revealIO=null;
+function admReveal(root,instant){const items=[...root.querySelectorAll('.kpi,.panel,.adm-chips .ac')].filter(x=>!x.classList.contains('in'));
+  if(instant||!('IntersectionObserver' in window)){items.forEach(x=>x.classList.add('rv','in'));countUp(root,true);return}
+  revealIO=revealIO||new IntersectionObserver(es=>{let k=0;es.forEach(e=>{if(!e.isIntersecting)return;revealIO.unobserve(e.target);e.target.style.setProperty('--d',(k++*.05).toFixed(2)+'s');e.target.classList.add('in');countUp(e.target)})},{root:$('#admin'),rootMargin:'0px 0px -6% 0px',threshold:.06});
+  items.forEach(x=>{x.classList.add('rv');revealIO.observe(x)})}
+function countUp(el,instant){const list=el.matches&&el.matches('.kpi')?[el.querySelector('b')]:[...el.querySelectorAll('.kpi b')];
+  list.forEach(b=>{if(!b||b.dataset.done)return;b.dataset.done=1;const m=/^(\D*)(\d+)(.*)$/.exec(b.textContent);if(!m||instant||reduce)return;const to=+m[2],t0=performance.now();if(to<2)return;
+    const step=now=>{const k=Math.min(1,(now-t0)/700),e=1-Math.pow(1-k,3);b.textContent=m[1]+Math.round(to*e)+m[3];if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step)})}
+function sortTable(th){const tr=th.parentNode,i=[...tr.children].indexOf(th),tb=th.closest('table').tBodies[0];if(!tb)return;const rows=[...tb.rows].filter(r=>!r.querySelector('.adm-empty'));if(rows.length<2)return;
+  const dir=th.dataset.dir==='desc'?'asc':'desc';tr.querySelectorAll('th').forEach(x=>{delete x.dataset.dir;x.removeAttribute('aria-sort')});th.dataset.dir=dir;th.setAttribute('aria-sort',dir==='asc'?'ascending':'descending');
+  const val=r=>{const c=r.cells[i];if(!c)return'';const v=c.dataset.v;return v!==undefined&&v!==''&&!isNaN(+v)?+v:c.textContent.trim().toLowerCase()};
+  rows.sort((a,b)=>{const A=val(a),B=val(b),c=typeof A==='number'&&typeof B==='number'?A-B:String(A).localeCompare(String(B));return dir==='asc'?c:-c});
+  rows.forEach((r,k)=>{r.style.setProperty('--i',Math.min(k,20));r.classList.remove('resort');void r.offsetWidth;r.classList.add('resort');tb.appendChild(r)})}
+/* ----- Host tools: invites and nudges, thank-yous, rooms and food, check-in, blessings and photos ----- */
+const HX={ci:'',inv:'open',invQ:''};
+const xapi=async(kind,body={})=>{const r=await api(Object.assign({action:'adminExtra',kind,password:admPw},body));if(!r.ok)throw new Error(r.error||'failed');return r};
+const digits10=p=>String(p||'').replace(/\D/g,'').slice(-10);
+const firstOf=n=>String(n||'').trim().split(/\s+/)[0]||'there';
+const waLink=(phone,text)=>`https://wa.me/${String(phone).replace(/\D/g,'')}?text=${encodeURIComponent(text)}`;
+const nudgeText=n=>`Namaste ${firstOf(n)}! 🙏 Hemanth & Alekya here. We’d love to celebrate with you (29 Nov – 3 Dec, Celina TX). Could you let us know if you can make it? It takes a minute: https://is.gd/hemwedsalekya`;
+const thanksText=n=>`Dear ${firstOf(n)}, thank you so much for celebrating with us and for all your blessings 🙏 It meant the world to us. Our wedding site: ${SITE}\n\nWith love, Hemanth & Alekya`;
+const going=x=>x.status==='yes'||x.status==='maybe',partyOf=x=>1+x.plusOnes.length+(+x.kids||0);
+function matchInvite(inv){const d=digits10(inv.phone),k=nameKey(inv.name);return admData.rsvps.find(x=>(d&&digits10(x.phone)===d)||nameKey(x.firstName+' '+x.lastName)===k)}
+const nameKey=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[^a-z\s]/g,'').replace(/\s+/g,' ').trim();
+
+function invitesPane(){return`<div class="adm-chips left" id="inv-chips"></div>
+  <details class="hx-card"><summary>${ICO.add}<b>Add people you invited</b></summary><div class="hx-body"><textarea id="inv-paste" rows="5" placeholder="One per line: Name, WhatsApp number&#10;Ravi Kumar, 469 555 1234&#10;Lakshmi Rao, +91 98765 43210"></textarea><button type="button" class="btn solid" data-x="inv-add">Add to the list</button></div></details>
+  <div class="adm-tools two"><input type="search" id="inv-q" placeholder="Search invited guests" aria-label="Search invited guests"></div>
+  <div class="af-seg inv-seg" role="group" aria-label="Show">${[['open','Not replied'],['done','Replied'],['all','Everyone']].map(([k,l])=>`<button type="button" data-inv="${k}" aria-pressed="${HX.inv===k}">${l}</button>`).join('')}</div>
+  <ul class="hx-list" id="inv-list"></ul>
+  <h3 class="hx-h">Thank-yous <small>after the wedding</small></h3><ul class="hx-list" id="ty-list"></ul>`}
+function invRender(){const E=admData.extras||{},list=(E.invites||[]).map(i=>Object.assign({},i,{r:matchInvite(i)})),q=HX.invQ.toLowerCase();
+  const replied=list.filter(i=>i.r).length,nudged=list.filter(i=>!i.r&&i.nudgedAt).length;
+  $('#inv-chips').innerHTML=`<span class="ac"><b>${list.length}</b> invited</span><span class="ac g"><b>${replied}</b> replied</span><span class="ac r"><b>${list.length-replied}</b> waiting</span><span class="ac b"><b>${nudged}</b> nudged</span>`;
+  const shown=list.filter(i=>(HX.inv==='all'||(HX.inv==='done')===!!i.r)&&(!q||(i.name+' '+i.phone).toLowerCase().includes(q))).sort((a,b)=>(!!a.nudgedAt-!!b.nudgedAt)||a.name.localeCompare(b.name));
+  $('#inv-list').innerHTML=shown.map((i,k)=>`<li class="hx-row" style="--i:${Math.min(k,15)}"><span class="hg-av sm" aria-hidden="true">${esc(i.name.split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase())}</span><span class="hx-main"><b>${esc(i.name)}</b><small>${esc(i.phone||'No number')}${i.r?` · <span class="pill ${esc(i.r.status)}">${STL[i.r.status]||esc(i.r.status)}</span>`:i.nudgedAt?` · nudged ${esc(fmtTime(i.nudgedAt))}`:''}</small></span>
+    ${!i.r&&i.phone?`<a class="ib sm wa${i.nudgedAt?' done':''}" href="${esc(waLink(i.phone,nudgeText(i.name)))}" target="_blank" rel="noopener noreferrer" data-x="nudge" data-id="${esc(i.id)}" aria-label="WhatsApp ${esc(i.name)} a reminder" title="Send a reminder">${waSvg}</a>`:''}<button type="button" class="ib sm del" data-x="inv-del" data-id="${esc(i.id)}" aria-label="Remove ${esc(i.name)}" title="Remove">${ICO.trash}</button></li>`).join('')||`<li class="adm-empty">${list.length?'Nobody here.':'Add the people you invited to see who hasn’t replied yet.'}</li>`;
+  const th=E.thanked||{},att=admData.rsvps.filter(x=>x.status==='yes'&&x.phone);
+  $('#ty-list').innerHTML=att.map((x,k)=>{const n=`${x.firstName} ${x.lastName}`;return`<li class="hx-row" style="--i:${Math.min(k,15)}"><span class="hg-av sm" aria-hidden="true">${esc((x.firstName[0]||'')+(x.lastName[0]||''))}</span><span class="hx-main"><b>${esc(n)}</b><small>${th[x.id]?`Thanked ${esc(fmtTime(th[x.id]))}`:`Party of ${partyOf(x)}`}</small></span><a class="ib sm wa${th[x.id]?' done':''}" href="${esc(waLink(x.phone,thanksText(n)))}" target="_blank" rel="noopener noreferrer" data-x="thank" data-id="${esc(x.id)}" aria-label="Thank ${esc(n)} on WhatsApp" title="Send a thank-you">${waSvg}</a></li>`}).join('')||'<li class="adm-empty">Attending guests will appear here.</li>'}
+
+function planPane(){return`<div class="panel"><h3>Food per event</h3><div id="food-tbl"></div><button type="button" class="btn more-btn" data-x="food-csv">${ICO.csv} Caterer CSV</button></div>
+  <div class="panel" style="margin-top:12px"><h3>Rooms</h3><div id="rooms"></div></div>`}
+function planRender(){const s=admData.stats,ev=s.perEvent;
+  $('#food-tbl').innerHTML=`<div class="adm-tbl-wrap mini"><table class="adm-tbl rank food"><thead><tr><th>Event</th><th>Adults</th><th>Kids</th><th>Tentative</th><th>Plan for</th></tr></thead><tbody>${ev.map(e=>{const ad=e.yes-(e.yesKids||0),pl=e.yes+e.maybe;return`<tr><td>${esc(e.label)}</td><td data-v="${ad}"><b>${ad}</b></td><td data-v="${e.yesKids||0}">${e.yesKids||0}</td><td data-v="${e.maybe}">${e.maybe}</td><td data-v="${pl}"><b>${pl}</b></td></tr>`}).join('')}</tbody></table></div><p class="legend">“Plan for” adds tentative guests. Families who replied separately are counted once.</p>`;
+  const R=(admData.extras||{}).rooms||{rooms:[],assign:{}},stay=admData.rsvps.filter(x=>going(x)&&x.accommodation),used={};
+  stay.forEach(x=>{const r=R.assign[x.id];if(r)used[r]=(used[r]||0)+partyOf(x)});
+  const free=stay.filter(x=>!R.assign[x.id]).reduce((a,x)=>a+partyOf(x),0);
+  $('#rooms').innerHTML=`<div class="rooms">${R.rooms.map(r=>{const u=used[r.id]||0,pct=r.beds?Math.min(100,u/r.beds*100):0;return`<div class="room${u>r.beds?' over':''}"><input value="${esc(r.name)}" data-room-name="${esc(r.id)}" aria-label="Room name"><label>Beds <input type="number" min="0" max="50" value="${r.beds}" data-room-beds="${esc(r.id)}"></label><span class="room-bar"><i style="width:${pct}%"></i></span><small>${u} / ${r.beds} placed</small><button type="button" class="ib sm del" data-x="room-del" data-id="${esc(r.id)}" aria-label="Remove room">${ICO.trash}</button></div>`}).join('')}<button type="button" class="room add" data-x="room-add">${ICO.add}<span>Add a room</span></button></div>
+   <div class="adm-chips left" style="margin-top:12px"><span class="ac ${free?'r':'g'}"><b>${free}</b> not placed</span><span class="ac"><b>${stay.reduce((a,x)=>a+partyOf(x),0)}</b> need a stay</span></div>
+   <ul class="hx-list">${stay.map(x=>`<li class="hx-row"><span class="hx-main"><b>${esc(x.firstName+' '+x.lastName)}</b><small>${partyOf(x)} ${partyOf(x)>1?'people':'person'} · ${esc(dKey(x.arrival))} → ${esc(dKey(x.departure))}</small></span><select data-assign="${esc(x.id)}" aria-label="Room for ${esc(x.firstName)}"><option value="">Not placed</option>${R.rooms.map(r=>`<option value="${esc(r.id)}"${R.assign[x.id]===r.id?' selected':''}>${esc(r.name)}</option>`).join('')}</select></li>`).join('')||'<li class="adm-empty">Guests who need a stay appear here.</li>'}</ul>`}
+let roomsT=0;
+function roomsSave(){clearTimeout(roomsT);roomsT=setTimeout(async()=>{const R=admData.extras.rooms;try{await xapi('rooms',{rooms:R.rooms,assign:R.assign});toast('Rooms saved ✓')}catch{tell('Could not save the rooms.')}},700)}
+
+function checkinPane(){return`<div class="af-seg ci-seg" role="group" aria-label="Event" id="ci-seg"></div><div class="ci-meter" id="ci-meter"></div><div class="adm-tools two"><input type="search" id="ci-q" placeholder="Find a guest" aria-label="Find a guest"></div><ul class="hx-list" id="ci-list"></ul><button type="button" class="btn more-btn" data-x="walkin">${ICO.add} Add a walk-in</button>`}
+function ciRender(){const ev=admData.stats.perEvent;if(!HX.ci){const now=Date.now(),next=WEDDING.events.find(e=>+endOf(e)>now);HX.ci=next?next.id:ev[0].id}
+  const e=ev.find(x=>x.id===HX.ci)||ev[0],ins=((admData.extras||{}).checkins||[]).filter(c=>c.event===e.id),arrived={};ins.forEach(c=>{const k=c.rsvpId||'walk:'+c.name;arrived[k]=Math.max(0,(arrived[k]||0)+(+c.count||0))});
+  const total=Object.values(arrived).reduce((a,b)=>a+b,0),expect=e.yes,pct=expect?Math.min(100,total/expect*100):0;
+  $('#ci-seg').innerHTML=ev.map(x=>`<button type="button" data-ci="${esc(x.id)}" aria-pressed="${x.id===e.id}">${esc(x.label.replace(/ \(.*\)$/,'').replace(/ \/.*$/,''))}</button>`).join('');
+  $('#ci-meter').innerHTML=`<div class="ci-num"><b>${total}</b><span>of ${expect} expected${e.maybe?` (+${e.maybe} tentative)`:''}</span></div><span class="ci-bar"><i style="width:${pct}%"></i></span>`;
+  const q=($('#ci-q')?.value||'').toLowerCase(),isPrivate=!WEDDING.events.some(w=>w.id===e.id);
+  const guests=admData.rsvps.filter(x=>going(x)&&(isPrivate||x.events.includes(e.id))&&(!q||(x.firstName+' '+x.lastName).toLowerCase().includes(q)));
+  const walk=Object.keys(arrived).filter(k=>k.startsWith('walk:')&&arrived[k]>0);
+  $('#ci-list').innerHTML=guests.map(x=>{const a=arrived[x.id]||0,n=partyOf(x);return`<li class="hx-row ci${a?' in':''}"><span class="hx-main"><b>${esc(x.firstName+' '+x.lastName)}</b><small>${n} ${n>1?'people':'person'}${x.status==='maybe'?' · tentative':''}${a?` · ${a} arrived`:''}</small></span><button type="button" class="ci-btn" data-x="${a?'ci-undo':'ci-in'}" data-id="${esc(x.id)}" data-n="${a||n}" data-name="${esc(x.firstName+' '+x.lastName)}">${a?'✓ Here':'Arrived'}</button></li>`}).join('')+walk.map(k=>`<li class="hx-row ci in"><span class="hx-main"><b>${esc(k.slice(5))}</b><small>Walk-in · ${arrived[k]} arrived</small></span><button type="button" class="ci-btn" data-x="ci-undo" data-id="" data-n="${arrived[k]}" data-name="${esc(k.slice(5))}">✓ Here</button></li>`).join('')||'<li class="adm-empty">No guests for this event yet.</li>'}
+
+function blessPane(){return`<div class="adm-chips left" id="bl-chips"></div><div class="bl-photos" id="bl-photos"></div>`}
+function blRender(){if(!$('#bl-photos'))return;const E=admData.extras||{},P=E.photos||[];
+  $('#bl-chips').innerHTML=`<span class="ac b"><b>${P.length}</b> photos</span><span class="ac ${E.photosOpen?'g':''}">Photo sharing ${E.photosOpen?'on':'off'}</span>`;
+  $('#bl-photos').innerHTML=P.map(p=>`<figure class="bl-ph${p.hidden?' off':''}"><img src="${esc(thumb(p.fileId,300))}" alt="Photo by ${esc(p.name)}" loading="lazy"><figcaption>${esc(p.name)}</figcaption><span><button type="button" class="ib sm" data-x="photo-hide" data-id="${esc(p.id)}" data-h="${p.hidden?'':'1'}" aria-label="${p.hidden?'Show':'Hide'}">${p.hidden?'👁':'🙈'}</button><button type="button" class="ib sm del" data-x="photo-del" data-id="${esc(p.id)}" aria-label="Delete">${ICO.trash}</button></span></figure>`).join('')||'<p class="adm-empty">Guests’ photos will appear here once sharing opens.</p>'}
+function hostRender(){admData.extras=Object.assign({invites:[],checkins:[],photos:[],thanked:{},rooms:{rooms:[],assign:{}}},admData.extras||{});invRender();planRender();ciRender();blRender()}
+
+$('#admin').addEventListener('click',async e=>{const b=e.target.closest('[data-x],[data-inv],[data-ci]');if(!b)return;const E=admData.extras;
+  if(b.dataset.inv){HX.inv=b.dataset.inv;$$('#admin [data-inv]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));invRender();return}
+  if(b.dataset.ci){HX.ci=b.dataset.ci;ciRender();return}
+  const id=b.dataset.id,x=b.dataset.x;
+  try{
+    if(x==='inv-add'){const lines=$('#inv-paste').value.split(/\n/).map(l=>l.trim()).filter(Boolean).map(l=>{const m=/^(.*?)[,;\t]+\s*([+\d][\d\s().-]{6,})$/.exec(l);return m?{name:m[1].trim(),phone:m[2]}:{name:l}});if(!lines.length)return;
+      const bb=busyBtn(b,['Adding…']);try{const r=await xapi('invitesAdd',{list:lines});await bb.ok(`${r.added} added`);$('#inv-paste').value='';await reloadAdmin(true)}finally{bb.end()}}
+    if(x==='inv-del'&&await ask('They stay on any RSVP they sent; this only removes them from your invite list.',{title:'Remove from the list?',ok:'Remove'})){await xapi('inviteDelete',{id});E.invites=E.invites.filter(i=>i.id!==id);invRender();toast('Removed')}
+    if(x==='nudge'){const i=E.invites.find(v=>v.id===id);if(i&&!i.nudgedAt){i.nudgedAt=new Date().toISOString();invRender();xapi('inviteMark',{id,field:'nudgedAt'}).catch(()=>{})}}
+    if(x==='thank'){E.thanked=E.thanked||{};if(!E.thanked[id]){E.thanked[id]=new Date().toISOString();invRender();xapi('thank',{id}).catch(()=>{})}}
+    if(x==='food-csv'){const rows=[['Event','Adults','Kids','Tentative','Plan for']].concat(admData.stats.perEvent.map(v=>[v.label,v.yes-(v.yesKids||0),v.yesKids||0,v.maybe,v.yes+v.maybe]));const url=URL.createObjectURL(new Blob([rows.map(r=>r.map(c=>/[",]/.test(c)?`"${String(c).replace(/"/g,'""')}"`:c).join(',')).join('\n')],{type:'text/csv'})),l=document.createElement('a');l.href=url;l.download='food-per-event.csv';l.click();setTimeout(()=>URL.revokeObjectURL(url),4000);toast('Caterer CSV downloaded')}
+    if(x==='room-add'){E.rooms.rooms.push({id:Math.random().toString(36).slice(2,10),name:`Room ${E.rooms.rooms.length+1}`,beds:2});planRender();roomsSave()}
+    if(x==='room-del'){E.rooms.rooms=E.rooms.rooms.filter(r=>r.id!==id);Object.keys(E.rooms.assign).forEach(k=>{if(E.rooms.assign[k]===id)delete E.rooms.assign[k]});planRender();roomsSave()}
+    if(x==='ci-in'||x==='ci-undo'){const n=+b.dataset.n||1,rec={at:new Date().toISOString(),event:HX.ci,rsvpId:id,name:b.dataset.name,count:x==='ci-in'?n:-n};b.disabled=true;
+      E.checkins.push(rec);ciRender();if(x==='ci-in'){toast(`${b.dataset.name} · ${n} arrived ✓`)}
+      try{await xapi('checkin',rec)}catch(err){E.checkins.pop();ciRender();throw err}}
+    if(x==='walkin'){const name=(prompt('Walk-in name')||'').trim();if(!name)return;const n=Math.max(1,Math.min(20,parseInt(prompt('How many people?','1')||'1',10)||1));const rec={at:new Date().toISOString(),event:HX.ci,rsvpId:'',name,count:n};E.checkins.push(rec);ciRender();await xapi('checkin',rec);toast(`${name} · ${n} arrived ✓`)}
+    if(x==='photo-hide'){const it=E.photos.find(v=>v.id===id);it.hidden=!!b.dataset.h;blRender();await xapi('photoHide',{id,hidden:it.hidden});toast(it.hidden?'Hidden from the site':'Shown on the site')}
+    if(x==='photo-del'&&await ask('The photo also goes to the Drive trash.',{title:'Delete this photo?',ok:'Delete'})){
+      b.closest('figure')?.classList.add('gone');await xapi('photoDelete',{id});E.photos=E.photos.filter(v=>v.id!==id);setTimeout(blRender,300);toast('Deleted')}
+  }catch(err){tell('Could not reach the server. Please try again.')}});
+$('#admin').addEventListener('input',e=>{const t=e.target;if(t.id==='inv-q'){HX.invQ=t.value;invRender()}if(t.id==='ci-q')ciRender();
+  const R=admData&&admData.extras&&admData.extras.rooms;if(!R)return;
+  if(t.dataset.roomName){const r=R.rooms.find(v=>v.id===t.dataset.roomName);if(r){r.name=t.value;roomsSave()}}
+  if(t.dataset.roomBeds){const r=R.rooms.find(v=>v.id===t.dataset.roomBeds);if(r){r.beds=Math.max(0,Math.min(50,+t.value||0));roomsSave()}}});
+$('#admin').addEventListener('change',e=>{const t=e.target;if(!t.dataset.assign)return;const R=admData.extras.rooms;if(t.value)R.assign[t.dataset.assign]=t.value;else delete R.assign[t.dataset.assign];planRender();roomsSave()});
 const ACT={created:'Sent RSVP',updated:'Updated',withdrawn:'Withdrew','edited by admin':'Edited by you','added by admin':'Added by you','deleted by admin':'Deleted by you'};
 const FLD={headcount:'Headcount',firstName:'First name',lastName:'Last name',plusOnes:'Plus-ones',kids:'Kids',accommodation:'Stay',arrival:'Arriving',departure:'Leaving',events:'Events',travel:'Travel',flight:'Flight',food:'Food',message:'Note',status:'Reply',gender:'Gender',phone:'WhatsApp',email:'Email'};
 const actTone=a=>/delet|withdr/.test(a)?'r':/creat|add/.test(a)?'g':'a';
-function histItem(h,withName=true){const ch=h.changes||[],only=/creat|add/.test(h.action)?'after':/delet/.test(h.action)?'before':'';
-  const val=c=>only==='after'?`<b>${esc(c.after||'—')}</b>`:only==='before'?`<s>${esc(c.before||'—')}</s>`:`<s>${esc(c.before||'—')}</s><i aria-hidden="true">→</i><b>${esc(c.after||'—')}</b>`;
-  return`<li class="hx-ev ${actTone(h.action)}"><div class="hx-ev-h">${withName?`<b>${esc(h.name)}</b>`:''}<span class="adm-tag ${actTone(h.action)}">${esc(ACT[h.action]||h.action)}</span><time datetime="${esc(h.at)}">${esc(fmtTime(h.at))}</time></div>${ch.length?`<dl class="chg">${ch.map(c=>`<dt>${esc(FLD[c.field]||c.field)}</dt><dd>${val(c)}</dd>`).join('')}</dl>`:''}</li>`}
+const EVT=Object.fromEntries(WEDDING.events.map(e=>[e.title,e]));
+const evWhen=e=>`${weekday(e).slice(0,3)} ${e.d} ${MON[e.m-1].slice(0,3)} · ${time12(e.t)}`;
+// Events as a numbered, dated mini-timeline in wedding order; added ones in green, dropped ones struck through.
+function evTimeline(before,after,only){const split=v=>String(v||'').split(', ').map(t=>t.trim()).filter(Boolean);
+  const B=new Set(only==='after'?[]:split(before)),A=new Set(only==='before'?[]:split(after)),order=t=>EVT[t]?WEDDING.events.indexOf(EVT[t]):99;
+  const all=[...new Set([...B,...A])].sort((x,y)=>order(x)-order(y));if(!all.length)return'<span class="muted">No events</span>';
+  return`<ol class="evl">${all.map((t,i)=>{const e=EVT[t],st=only==='before'?'drop':only?'':A.has(t)&&!B.has(t)?'add':B.has(t)&&!A.has(t)?'drop':'';
+    return`<li class="${st}" style="--c:${esc(e?e.accent:'#b8862b')}"><i class="evn">${i+1}</i>${e?`<svg viewBox="0 0 48 48" aria-hidden="true">${ICONS[e.icon]||''}</svg>`:'<span></span>'}<span><b>${esc(t)}</b>${e?`<small>${esc(evWhen(e))}</small>`:''}</span>${st&&!only?`<em>${st==='add'?'added':'dropped'}</em>`:''}</li>`}).join('')}</ol>`}
+const pillOf=v=>{const k={attending:'yes',tentative:'maybe',withdrawn:'withdrawn'}[String(v).toLowerCase()]||(/not|can|declin/i.test(v)?'no':'');return k?`<span class="pill ${k}">${esc(v)}</span>`:esc(v)};
+function chgVal(c,only){const f=c.field,b=c.before,a=c.after;if(f==='events')return evTimeline(b,a,only);
+  const show=v=>{v=String(v??'');if(!v)return'<span class="muted">—</span>';if(f==='status')return pillOf(v);if(f==='arrival'||f==='departure')return`<span class="dchip">${ICO.clock}${esc(v)}</span>`;
+    if(f==='message')return`<q>${esc(v)}</q>`;if(f==='accommodation')return`<span class="dchip">${esc(v)}</span>`;return`<span>${esc(v)}</span>`};
+  if(only==='after')return show(a);if(only==='before')return`<span class="was">${show(b)}</span>`;
+  const d=f==='headcount'||f==='kids'?(+a||0)-(+b||0):0;
+  return`<span class="was">${show(b)}</span><i class="arr" aria-hidden="true">→</i>${show(a)}${d?`<span class="delta ${d>0?'up':'down'}">${d>0?'+':'−'}${Math.abs(d)}</span>`:''}`}
+function histItem(h,withName=true,step){const ch=h.changes||[],only=/creat|add/.test(h.action)?'after':/delet/.test(h.action)?'before':'';
+  return`<li class="hx-ev ${actTone(h.action)}"${step?` data-step="${step}"`:''}><div class="hx-ev-h">${withName?`<b>${esc(h.name)}</b>`:''}<span class="adm-tag ${actTone(h.action)}">${esc(ACT[h.action]||h.action)}</span><time datetime="${esc(h.at)}">${esc(fmtTime(h.at))}</time></div>${ch.length?`<dl class="chg">${ch.map(c=>`<dt>${esc(FLD[c.field]||c.field)}</dt><dd>${chgVal(c,only)}</dd>`).join('')}</dl>`:''}</li>`}
 function admRows(){const q=($('#adm-q')?.value||'').toLowerCase(),st=$('#adm-st')?.value||'',stay=$('#adm-stay')?.value||'',sort=$('#adm-sort')?.value||'updatedAt';
   const party=x=>1+x.plusOnes.length+x.kids,dir={name:1,arrival:1}[sort]||-1,key={name:x=>(x.firstName+' '+x.lastName).toLowerCase(),party,arrival:x=>x.arrival||'9',updatedAt:x=>x.updatedAt}[sort];
   const list=admData.rsvps.filter(x=>(!st||x.status===st)&&(!stay||x.accommodation&&x.status!=='no')&&(!q||[x.firstName,x.lastName,x.phone,x.email,x.message,x.plusOnes.map(p=>p.name).join(' ')].join(' ').toLowerCase().includes(q))).sort((a,b)=>{const A=key(a),B=key(b);return(A>B?1:A<B?-1:0)*dir});
@@ -561,10 +810,22 @@ function admRows(){const q=($('#adm-q')?.value||'').toLowerCase(),st=$('#adm-st'
     <p class="gc-f">${x.phone?`<a href="${esc('https://wa.me/'+x.phone.replace(/\D/g,''))}" target="_blank" rel="noopener noreferrer">WhatsApp ${esc(x.phone)}</a>`:'<span>No number</span>'}<span>Updated ${esc(fmtTime(x.updatedAt))}</span>${x.source==='admin'?'<span>Added by you</span>':''}</p>
     <div class="gc-act"><button type="button" class="btn" data-edit="${esc(x.id)}" aria-label="Edit ${name}">Edit</button><button type="button" class="btn" data-hist="${esc(x.id)}" aria-expanded="false">History · ${hs.length}</button><button type="button" class="btn del" data-del="${esc(x.id)}" aria-label="Delete ${name}">Delete</button></div>
     <ol class="adm-tl mini" data-hist-for="${esc(x.id)}" hidden>${hs.map(h=>histItem(h,false)).join('')}</ol></article>`}).join('')||'<p class="adm-empty">No RSVPs match.</p>'}
-function admHist(){const q=($('#adm-hq')?.value||'').toLowerCase(),a=$('#adm-ha')?.value||'';
-  const list=admData.history.filter(h=>(!q||h.name.toLowerCase().includes(q))&&(!a||(a==='admin'?/admin/.test(h.action):a==='headcount'?h.changes.some(c=>c.field==='headcount'):h.action===a)));
-  $('#adm-hist').innerHTML=list.slice(0,300).map(h=>histItem(h)).join('')+(list.length>300?`<li class="adm-empty">Showing the latest 300 of ${list.length}. Search a name to see older changes.</li>`:'')||'<li class="adm-empty">No changes match.</li>'}
-$('#admin').addEventListener('input',e=>{if(e.target.closest('#adm-guests .adm-tools'))admRows();if(e.target.closest('#adm-history .adm-tools'))admHist()});
+// History grouped per guest: newest activity first, and each guest's latest change on top (numbered in the order they happened).
+function admHist(){const q=($('#adm-hq')?.value||'').toLowerCase(),a=$('#adm-ha')?.value||'',el=$('#adm-hist');if(!el)return;
+  const hit=h=>!a||(a==='admin'?/admin/.test(h.action):a==='headcount'?h.changes.some(c=>c.field==='headcount'):h.action===a);
+  const cur=Object.fromEntries(admData.rsvps.map(x=>[x.id,x])),groups={};
+  admData.history.forEach(h=>{const r=cur[h.id],name=r?`${r.firstName} ${r.lastName}`:h.name;if(q&&!(name+' '+h.name).toLowerCase().includes(q)||!hit(h))return;(groups[h.id||h.name]=groups[h.id||h.name]||{id:h.id,name,list:[]}).list.push(h)});
+  const gs=Object.values(groups).map(g=>{g.list.sort((x,y)=>x.at<y.at?1:x.at>y.at?-1:0);g.last=g.list[0].at;return g}).sort((x,y)=>x.last<y.last?1:-1);
+  el.innerHTML=gs.slice(0,200).map((g,i)=>{const r=cur[g.id],st=r?r.status:'deleted',ini=g.name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase(),party=r&&(st==='yes'||st==='maybe')?1+r.plusOnes.length+(+r.kids||0):0;
+    return`<details class="hg ${esc(st)}"${i<5||q?' open':''} style="--i:${Math.min(i,12)}"><summary><span class="hg-av" aria-hidden="true">${esc(ini)}</span><span class="hg-n"><b>${esc(g.name)}</b><small>${g.list.length} change${g.list.length>1?'s':''} · ${esc(fmtTime(g.last))}</small></span><span class="hg-tags">${r?`<span class="pill ${esc(st)}">${STL[st]||esc(st)}</span>`:'<span class="pill withdrawn">Deleted</span>'}${party?`<span class="ac">${party} ${party>1?'people':'person'}</span>`:''}</span><i class="hg-chev" aria-hidden="true"></i></summary><ol class="adm-tl hg-tl">${g.list.map((h,k)=>histItem(h,false,g.list.length-k)).join('')}</ol></details>`}).join('')||'<p class="adm-empty">No changes match.</p>';
+  const n=$('#hg-count');if(n)n.textContent=`${gs.length} guest${gs.length===1?'':'s'} · ${gs.reduce((t,g)=>t+g.list.length,0)} changes`}
+$('#admin').addEventListener('input',e=>{if(e.target.closest('#adm-guests .adm-tools'))admRows();if(e.target.closest('#adm-history .adm-tools'))admHist();
+  if(e.target.id==='an-q'){const q=e.target.value.trim().toLowerCase();e.target.nextElementSibling.querySelectorAll('tbody tr').forEach(r=>{r.hidden=!!q&&!r.textContent.toLowerCase().includes(q)})}});
+$('#admin').addEventListener('change',e=>{const t=e.target;if(!t.closest('#af'))return;
+  if(t.id==='af-from'||t.id==='af-to'){AF.from=$('#af-from').value;AF.to=$('#af-to').value;if(AF.from&&AF.to&&AF.from>AF.to)[AF.from,AF.to]=[AF.to,AF.from]}
+  else if(t.id==='af-h0'||t.id==='af-h1')AF[t.id.slice(3)]=+t.value;else if(t.id==='af-who')AF.who=t.value;
+  else if(t.dataset.dim){if(t.value)AF.dims[t.dataset.dim]=t.value;else delete AF.dims[t.dataset.dim]}
+  anRender()});
 const ed=$('#ed-form');let edId=null,toastT;
 ed.arrival.innerHTML=RDAYS.slice(0,-1).map((d,i)=>`<option value="${i}">${esc(dayText(i))}</option>`).join('');
 ed.departure.innerHTML=RDAYS.map((d,i)=>i?`<option value="${i}">${esc(dayText(i))}</option>`:'').join('');
@@ -588,23 +849,57 @@ ed.addEventListener('submit',async e=>{e.preventDefault();const er=$('#ed-error'
   try{const r=await api({action:'adminSave',password:admPw,id:edId,rsvp});if(r.ok){$('#adm-edit').close();await reloadAdmin();toast(edId?'Saved':'Guest added')}else er.textContent=r.error==='exists'?'Another RSVP already uses this WhatsApp number.':r.error==='invalid'?'Please check: '+Object.keys(r.fields||{}).join(', '):'Could not save.'}
   catch{er.textContent='Could not reach the server.'}finally{btn.disabled=false}});
 function saveAdmKeep(){admKeep={};['q','st','stay','sort','hq','ha'].forEach(k=>{const el=$('#adm-'+k);if(el)admKeep[k]=el.value})}
-async function reloadAdmin(){const a=$('#admin'),top=a.scrollTop;const r=await api({action:'admin',password:admPw});if(r.ok&&admPw){saveAdmKeep();admData=r;a.classList.add('quiet');renderAdmin();a.scrollTop=top}}
+const admSigOf=r=>JSON.stringify([r.rsvps,r.history.slice(0,5),r.history.length,(r.visits.log||[]).length,(r.visits.log||[]).slice(-40),r.mail]);
+async function reloadAdmin(manual){const a=$('#admin'),t0=Date.now();const r=await api({action:'admin',password:admPw});if(!r.ok||!admPw)throw new Error(r.error||'failed');
+  // Keep the refresh spinner visible long enough to read as feedback.
+  if(manual)await new Promise(res=>setTimeout(res,Math.max(0,750-(Date.now()-t0))));const top=a.scrollTop;
+  const sig=admSigOf(r);
+  if(!manual&&sig===admSig){admData.generatedAt=r.generatedAt;const u=$('#adm-upd');if(u)u.textContent=timeOnly(r.generatedAt);return}
+  admSig=sig;saveAdmKeep();admData=r;const more=$('#af-more')?.classList.contains('open');renderAdmin(!manual);if(more)setCollapse($('#af-more'),true);a.scrollTo({top,behavior:'instant'})}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
 $('#admin').addEventListener('click',async e=>{const a=e.target.closest('[data-a]'),tab=e.target.closest('[data-tab]'),hb=e.target.closest('[data-hist]'),del=e.target.closest('[data-del]'),edit=e.target.closest('[data-edit]');
   if(edit){openEditor(admData.rsvps.find(x=>x.id===edit.dataset.edit));return}
-  if(tab){admTab=tab.dataset.tab;$('#admin').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b===tab)));$('#admin').querySelectorAll('.adm-pane').forEach(p=>{p.hidden=p.id!=='adm-'+admTab});$('#admin').scrollTop=0;return}
+  if(tab){const order=['overview','guests','invites','plan','checkin','bless','history','visits'],from=order.indexOf(admTab);admTab=tab.dataset.tab;const dir=order.indexOf(admTab)>=from?'r':'l';
+    $('#admin').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b===tab)));
+    $('#admin').querySelectorAll('.adm-pane').forEach(p=>{const on=p.id==='adm-'+admTab;p.hidden=!on;if(on){p.classList.remove('from-l','from-r');void p.offsetWidth;p.classList.add('from-'+dir)}});
+    const nav=$('#admin .adm-tabs');if(nav&&$('#admin').scrollTop>nav.offsetTop)$('#admin').scrollTo({top:nav.offsetTop,behavior:'smooth'});return}
+  const th=e.target.closest('.adm-tbl th');if(th&&th.textContent.trim()){sortTable(th);return}
+  const lv=e.target.closest('[data-dim-k]');if(lv){AF.dims[lv.dataset.dimK]=lv.dataset.dimV;anRender();toast(`Showing ${DIM[lv.dataset.dimK].l.toLowerCase()}: ${lv.dataset.dimV}`);return}
+  const rg=e.target.closest('[data-range]');if(rg){AF.range=rg.dataset.range;setCollapse($('#af-custom'),AF.range==='custom');anRender();return}
+  const ud=e.target.closest('[data-undim]');if(ud){delete AF.dims[ud.dataset.undim];anRender();return}
+  if(e.target.closest('[data-unwho]')){AF.who='';anRender();return}
+  if(e.target.closest('[data-unhours]')){AF.h0=0;AF.h1=23;anRender();return}
   if(hb){const list=$('#admin').querySelector(`[data-hist-for="${CSS.escape(hb.dataset.hist)}"]`);if(list){list.hidden=!list.hidden;hb.setAttribute('aria-expanded',String(!list.hidden))}return}
   const vw=e.target.closest('[data-view]');if(vw){admView=vw.dataset.view;saveAdmKeep();renderAdmin();return}
   const gh=e.target.closest('[data-goto-hist]');if(gh){saveAdmKeep();admKeep.hq=gh.dataset.gotoHist;admKeep.ha='';admTab='history';renderAdmin();$('#admin').scrollTop=0;return}
   if(del&&await ask('This also removes it from the Google Sheet.',{title:'Delete this RSVP permanently?',ok:'Delete',cancel:'Cancel'})){try{const r=await api({action:'adminDelete',password:admPw,id:del.dataset.del});if(r.ok){await reloadAdmin();toast('Deleted')}else tell('Delete failed. Please try again.')}catch{tell('Could not reach the server.')}return}
   if(!a)return;
   if(a.dataset.a==='add')openEditor(null);
-  if(a.dataset.a==='close')closeAdmin();
-  if(a.dataset.a==='refresh'){a.disabled=true;try{await reloadAdmin();toast('Up to date')}catch{tell('Could not reach the server.')}a.disabled=false}
+  if(a.dataset.a==='close'){toast('Logged out');closeAdmin()}
+  if(a.dataset.a==='refresh'){if(a.classList.contains('spin'))return;a.classList.remove('ok','bad');a.classList.add('spin');
+    try{await reloadAdmin(true);const b=$('#admin [data-a=refresh]');if(b){b.classList.add('ok');setTimeout(()=>b.classList.remove('ok'),1600)}toast('Refreshed ✓')}
+    catch{const b=$('#admin [data-a=refresh]')||a;b.classList.remove('spin');b.classList.add('bad');setTimeout(()=>b.classList.remove('bad'),700);tell('Could not reach the server.')}
+    finally{const b=$('#admin [data-a=refresh]');if(b)b.classList.remove('spin');a.classList.remove('spin')}}
+  if(a.dataset.a==='af-more'){const c=$('#af-more'),open=!c.classList.contains('open');setCollapse(c,open);a.setAttribute('aria-expanded',String(open));a.classList.toggle('on',open)}
+  if(a.dataset.a==='hg-all'){const ds=$$('#adm-hist details'),open=ds.some(d=>!d.open);ds.forEach(d=>{d.open=open});a.textContent=open?'Collapse all':'Expand all'}
+  if(a.dataset.a==='backup'&&await ask('A copy of every tab (RSVPs, history, visits, photos, invites, check-ins) will be emailed to you as CSV files.',{title:'Email me a backup?',ok:'Send backup'})){a.classList.add('spin');try{const r=await xapi('backup');toast(`Backup emailed ✓ (${r.files} files)`)}catch{tell('Could not send the backup.')}a.classList.remove('spin')}
+  if(a.dataset.a==='lg-copy'){const n=($('#lg-name').value||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,24);if(!n){$('#lg-name').focus();return}
+    const url=`${SITE.split('?')[0]}?src=${n}`;try{await navigator.clipboard.writeText(url);toast('Link copied ✓')}catch{}$('#lg-out').innerHTML=`<code>${esc(url)}</code>`}
+  if(a.dataset.a==='af-reset'){Object.assign(AF,{h0:0,h1:23,who:'',dims:{}});anRender()}
+  if(a.dataset.a==='an-more'){anShown+=40;anRender({keep:true,instant:true})}
+  if(a.dataset.a==='vdel'){const [f,t]=afRange(),days=(admSessions||[]).map(x=>x.d).sort(),vf=$('#vdel-form');vf.from.value=f>'0000-00-00'?f:(days[0]||dayKey(Date.now()));vf.to.value=t<'9999-99-99'?t:(days[days.length-1]||dayKey(Date.now()));$('#vdel-error').textContent='';$('#adm-vdel').showModal()}
   if(a.dataset.a==='csv'){const cell=v=>{let s=Array.isArray(v)?v.map(p=>typeof p==='object'?[p.name,p.gender].filter(Boolean).join(' / '):p).join(' | '):String(v??'');if(/^[=+\-@]/.test(s))s="'"+s;return/[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+    a.classList.remove('pop');void a.offsetWidth;a.classList.add('pop');
     const visits=admTab==='visits',cols=visits?['at','who','returning','place','device','os','browser','source','tz','duration','scroll','sections','actions','rsvp']:['firstName','lastName','status','gender','phone','email','arrival','departure','events','plusOnes','kids','accommodation','travel','flight','food','message','createdAt','updatedAt'];
-    const data=visits?((admData.visits.analytics||{}).recent||[]).map(r=>Object.assign({},r,{at:fmtTime(r.at)})):admData.rsvps;
-    const csv=[cols.join(',')].concat(data.map(x=>cols.map(c=>cell(x[c])).join(','))).join('\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'})),l=document.createElement('a');l.href=url;l.download=visits?'visits.csv':'rsvps.csv';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(url),4000)}});
+    const data=visits?afApply(admSessions||[]).slice().reverse().map(r=>({at:fmtTime(r.at),who:r.p.slice(0,6),returning:r.multi?'yes':'no',place:joinPlace(r.city,r.region,r.country),device:r.device,os:r.os,browser:r.browser,source:r.source,tz:r.tz,duration:r.dur,scroll:r.scroll,sections:[...r.sec],actions:Object.keys(r.act).filter(k=>r.act[k]>0),rsvp:r.rsvp})):admData.rsvps;
+    const csv=[cols.join(',')].concat(data.map(x=>cols.map(c=>cell(x[c])).join(','))).join('\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv'})),l=document.createElement('a');l.href=url;l.download=visits?'visits.csv':'rsvps.csv';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast(`${visits?'Visits':'RSVPs'} CSV downloaded`)}});
+async function vdelRun(body,label){const er=$('#vdel-error'),btns=$$('#vdel-form button');btns.forEach(b=>{b.disabled=true});er.textContent='';
+  try{const r=await api(Object.assign({action:'adminVisitsDelete',password:admPw},body));if(!r.ok){er.textContent=r.error==='invalid'?'Please pick valid dates.':'Could not delete.';return}
+    $('#adm-vdel').close();await reloadAdmin(true);toast(`Deleted ${r.removed} visit row${r.removed===1?'':'s'}${label}`)}
+  catch{er.textContent='Could not reach the server.'}finally{btns.forEach(b=>{b.disabled=false})}}
+$('#vdel-form').addEventListener('submit',e=>{e.preventDefault();const f=e.target;if(!f.from.value||!f.to.value){$('#vdel-error').textContent='Pick both dates.';return}
+  const [a,b]=[f.from.value,f.to.value].sort();vdelRun({from:a,to:b},a===b?` from ${a}`:` from ${a} to ${b}`)});
+$('#vdel-all').addEventListener('click',async()=>{$('#adm-vdel').close();if(await ask('Every visit and all analytics will be removed from the Google Sheet. RSVPs are not affected.',{title:'Delete all analytics?',ok:'Delete everything',cancel:'Keep'})){$('#adm-vdel').showModal();vdelRun({all:true},'')}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#admin').hidden)closeAdmin()});
 
 

@@ -289,29 +289,23 @@ initWeddingFlowers({art,root,body,reduced});
  let openingActive=false;
  const smooth=(a,b,v)=>{const t=Math.min(1,Math.max(0,(v-a)/(b-a)));return t*t*(3-2*t)};
  const ramp=(a,b,v)=>Math.min(1,Math.max(0,(v-a)/(b-a)));
- function bell(){
-   try{const AC=window.AudioContext||window.webkitAudioContext,ac=new AC(),t=ac.currentTime+.02,out=ac.createGain();out.gain.value=.14;out.connect(ac.destination);
-     [[1,1],[2.76,.45],[5.4,.22],[8.93,.1]].forEach(([k,g])=>{const o=ac.createOscillator(),v=ac.createGain();o.frequency.value=440*k;v.gain.setValueAtTime(0,t);v.gain.linearRampToValueAtTime(g,t+.008);v.gain.exponentialRampToValueAtTime(.0001,t+3.2/(k*.6+.4));o.connect(v).connect(out);o.start(t);o.stop(t+3.4)});
-     setTimeout(()=>ac.close(),4000)}catch{}
- }
  $('#open').addEventListener('click',()=>{
    if(openingActive||body.classList.contains('opening-complete'))return;
    if(reduced.matches){body.classList.add('opening-reveal','opening-complete');body.dataset.openingState='complete';root.classList.remove('locked');return}
    openingActive=true;body.dataset.openingState='playing';body.dataset.openingPhase='diyas';
    const env=$('#envelope'),seal=$('.envelope .seal-art'),heroArt=$('#hero-art'),r=env.getBoundingClientRect(),W=innerWidth,H=innerHeight;
-   const ew=r.width||Math.min(W,480),eh=r.height||H,cx=r.left+ew*.5,cy=r.top+eh*.467,dpr=Math.min(devicePixelRatio||1,1.5);
+   const ew=r.width||Math.min(W,480),eh=r.height||H,cx=r.left+ew*.507,cy=r.top+eh*.46,dpr=Math.min(devicePixelRatio||1,1.5);
    const canvasFor=(z,cls)=>{const c=document.createElement('canvas');c.className=cls;c.width=Math.round(W*dpr);c.height=Math.round(H*dpr);c.style.cssText=`position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:${z}`;const g=c.getContext('2d');if(g)g.setTransform(dpr,0,0,dpr,0,0);return [c,g]};
    const [lightCanvas,lc]=canvasFor(0,'opening-canvas');opening.removeAttribute('style');opening.replaceChildren(lightCanvas);opening.style.opacity='1';
-   const [flowerCanvas,fc]=canvasFor(79,'opening-flowers');flowerCanvas.setAttribute('aria-hidden','true');body.append(flowerCanvas);
    const curtains=document.createElement('div');curtains.id='ux-curtains';curtains.setAttribute('aria-hidden','true');curtains.innerHTML='<i></i><i></i>';body.append(curtains);
    // Diyas sit around the inside edge of the envelope, lit clockwise from the bottom centre.
    const L=r.left+ew*.08,R=r.left+ew*.92,T=r.top+eh*.1,B=r.top+eh*.9,pw=R-L,ph=B-T,per=2*(pw+ph);
    const onEdge=s=>{let d=(pw/2+s*per)%per;if(d<pw)return[R-d,B];d-=pw;if(d<ph)return[L,B-d];d-=ph;if(d<pw)return[L+d,T];d-=pw;return[R,T+d]};
    const diyas=Array.from({length:16},(_,i)=>{const [x,y]=onEdge(i/16);return{x,y,on:.15+i*.07,run:1.05+i*.025,ph:Math.random()*6.3}});
    // Glowing folds: each flap carries the inner half of the glow on its own edges, so the light moves with it as it opens.
-   const pt=(x,y)=>[ew*x/100,eh*y/100],C=pt(50,49),TL=pt(0,15),TR=pt(100,15),BL=pt(0,70),BR=pt(100,70);
-   const SEAMS={tl:[C,TL],tr:[C,TR],bl:[C,BL],br:[C,BR]};
-   const RIMS={tlUp:[TL,pt(0,0),pt(50,0)],trUp:[TR,pt(100,0),pt(50,0)],tlDown:[TL,pt(0,42.5)],blUp:[BL,pt(0,42.5)],trDown:[TR,pt(100,42.5)],brUp:[BR,pt(100,42.5)],blDown:[BL,pt(0,100),pt(50,100)],brDown:[BR,pt(100,100),pt(50,100)]};
+   const pt=(x,y)=>[ew*x/100,eh*y/100],CL=pt(42,46.3),CR=pt(54.2,47.1),TL=pt(0,21.5),TR=pt(100,22),BL=pt(0,69.5),BR=pt(100,71.8);
+   const SEAMS={tl:[CL,TL],tr:[CR,TR],bl:[CL,BL],br:[CR,BR]};
+   const RIMS={tlUp:[TL,pt(0,0),pt(50,0)],trUp:[TR,pt(100,0),pt(50,0)],tlDown:[TL,pt(0,45.5)],blUp:[BL,pt(0,45.5)],trDown:[TR,pt(100,46.9)],brUp:[BR,pt(100,46.9)],blDown:[BL,pt(0,100),pt(50,100)],brDown:[BR,pt(100,100),pt(50,100)]};
    const FLAPS={top:['tl','tr','tlUp','trUp'],left:['tl','bl','tlDown','blUp'],right:['tr','br','trDown','brUp'],bottom:['bl','br','blDown','brDown']};
    const lenOf=ps=>ps.slice(1).reduce((s,p,i)=>s+Math.hypot(p[0]-ps[i][0],p[1]-ps[i][1]),0);
    const along=(ps,u)=>{let d=lenOf(ps)*u;for(let i=1;i<ps.length;i++){const a=ps[i-1],b=ps[i],l=Math.hypot(b[0]-a[0],b[1]-a[1]);if(d<=l||i===ps.length-1){const k=l?Math.min(1,d/l):0;return[a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k]}d-=l}return ps[0]};
@@ -325,9 +319,10 @@ initWeddingFlowers({art,root,body,reduced});
        [['halo',`hx-blur-${side}`],['glow',`hx-soft-${side}`],['core','']].forEach(([c,f])=>{const p=document.createElementNS(NS,'path');p.setAttribute('d','M'+ps.map(q=>q.map(v=>v.toFixed(1)).join(' ')).join('L'));p.setAttribute('class',c);if(f)p.setAttribute('filter',`url(#${f})`);g.append(p)});
        svg.append(g);edgeLines.push({g,len,rim:!SEAMS[k]})});
      part.append(svg);edgeSvgs.push(svg)});
-   const sparks=[],petals=[],flowerImgs=['jasmineFlower','banthiOrange','banthiYellow','roseFlower','lotusFlower'].filter(k=>art[k]).map(k=>{const im=new Image();im.src=art[k];return im});
-   const rr=Math.min(ew,eh)*.17,reach=Math.hypot(W,H);
-   let start=0,prev=0,raf=0,broke=false,revealed=false,spilled=false,flashed=false,parted=false,done=false;
+   const sparks=[];
+   // The aarti circles a uniform gap outside the wax seal (same ellipse as .seal-art's clip), so the orbit is an ellipse.
+   const ring=Math.max(10,ew*.03),rx=ew*.164+ring,ry=eh*.094+ring,reach=Math.hypot(W,H);
+   let start=0,prev=0,raf=0,broke=false,revealed=false,flashed=false,parted=false,done=false;
    const flame=(x,y,s,a,flick)=>{
      const halo=lc.createRadialGradient(x,y-4*s,0,x,y-4*s,26*s);halo.addColorStop(0,`rgba(255,214,120,${.55*a})`);halo.addColorStop(1,'rgba(255,170,60,0)');
      lc.fillStyle=halo;lc.beginPath();lc.arc(x,y-4*s,26*s,0,6.283);lc.fill();
@@ -340,11 +335,11 @@ initWeddingFlowers({art,root,body,reduced});
      if(done)return;done=true;body.dataset.openingState='complete';body.dataset.openingPhase='complete';body.classList.add('opening-reveal','opening-complete');
      root.classList.remove('locked');document.dispatchEvent(new CustomEvent('hx:opening-swell'));document.dispatchEvent(new CustomEvent('hx:opening-complete'));openingActive=false;
    }
-   function cleanup(){cancelAnimationFrame(raf);opening.style.opacity='0';lightCanvas.remove();flowerCanvas.remove();curtains.remove();edgeSvgs.forEach(s=>s.remove());finish()}
+   function cleanup(){cancelAnimationFrame(raf);opening.style.opacity='0';lightCanvas.remove();curtains.remove();edgeSvgs.forEach(s=>s.remove());finish()}
    function frame(now){
      raf=requestAnimationFrame(frame);start=start||now;const t=(now-start)/1000,dt=Math.min(.05,(now-(prev||now))/1000);prev=now;
      if(!lc){if(t>3.4&&!revealed){revealed=true;body.classList.add('hx-parts','opening-reveal')}if(t>6)cleanup();return}
-     lc.clearRect(0,0,W,H);fc&&fc.clearRect(0,0,W,H);lc.globalCompositeOperation='lighter';
+     lc.clearRect(0,0,W,H);lc.globalCompositeOperation='lighter';
      body.dataset.openingPhase=t<1.35?'diyas':t<2.95?'aarti':t<4.2?'seal':'reveal';
      // Diyas, then their sparks run to the seal.
      diyas.forEach(d=>{
@@ -359,13 +354,13 @@ initWeddingFlowers({art,root,body,reduced});
      const ai=smooth(1.35,1.6,t)*(1-smooth(2.85,3.05,t));
      if(ai>0){
        const ang=-Math.PI/2+smooth(1.35,2.95,t)*Math.PI*6;
-       lc.strokeStyle=`rgba(255,210,120,${.16*ai})`;lc.lineWidth=1.2;lc.beginPath();lc.arc(cx,cy,rr,0,6.283);lc.stroke();
-       for(let k=22;k>=0;k--){const a=ang-k*.09,q=1-k/22;dot(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr,1+2.4*q,ai*q*q)}
-       flame(cx+Math.cos(ang)*rr,cy+Math.sin(ang)*rr,1.25,ai,t*12);
-       if(Math.random()<.55)sparks.push({x:cx+Math.cos(ang)*rr,y:cy+Math.sin(ang)*rr,vx:(Math.random()-.5)*40,vy:-10-Math.random()*30,life:.6+Math.random()*.5,age:0,size:.8+Math.random()});
+       lc.strokeStyle=`rgba(255,210,120,${.16*ai})`;lc.lineWidth=1.2;lc.beginPath();lc.ellipse(cx,cy,rx,ry,0,0,6.283);lc.stroke();
+       for(let k=22;k>=0;k--){const a=ang-k*.09,q=1-k/22;dot(cx+Math.cos(a)*rx,cy+Math.sin(a)*ry,1+2.4*q,ai*q*q)}
+       flame(cx+Math.cos(ang)*rx,cy+Math.sin(ang)*ry,1.25,ai,t*12);
+       if(Math.random()<.55)sparks.push({x:cx+Math.cos(ang)*rx,y:cy+Math.sin(ang)*ry,vx:(Math.random()-.5)*40,vy:-10-Math.random()*30,life:.6+Math.random()*.5,age:0,size:.8+Math.random()});
      }
-     // The seal breaks: a few embers, a bell and a small vibration. The flaps take over from the single envelope image.
-     if(t>=2.95&&!broke){broke=true;burst(18,90);bell();try{navigator.vibrate&&navigator.vibrate(22)}catch{}seal?.classList.add('ux-seal-crack');body.classList.add('hx-parts');body.dataset.openingPhase='seal'}
+     // The seal breaks: a few embers and a small vibration. The flaps take over from the single envelope image.
+     if(t>=2.95&&!broke){broke=true;burst(18,90);try{navigator.vibrate&&navigator.vibrate(22)}catch{}seal?.classList.add('ux-seal-crack');body.classList.add('hx-parts');body.dataset.openingPhase='seal'}
      // Light runs from the seal along the four folds (3–3.75 s), then both ways round the rim until it meets (3.6–4.25 s).
      const seamU=smooth(3,3.75,t),rimU=smooth(3.6,4.25,t),edgeA=smooth(2.98,3.15,t)*(1-smooth(5.3,6.1,t))*(.9+.1*Math.sin(t*13));
      edgeSvgs.forEach(s=>{s.style.opacity=edgeA.toFixed(3)});
@@ -376,20 +371,13 @@ initWeddingFlowers({art,root,body,reduced});
      const inner=smooth(4.2,5.4,t)*(1-smooth(5.9,6.8,t));
      if(inner>0){const rad=reach*(.22+.38*inner),g=lc.createRadialGradient(cx,cy,0,cx,cy,rad);g.addColorStop(0,`rgba(255,248,222,${.62*inner})`);g.addColorStop(.4,`rgba(255,210,125,${.3*inner})`);g.addColorStop(1,'rgba(255,180,80,0)');lc.fillStyle=g;lc.fillRect(0,0,W,H)}
      if(t>=4.2&&!revealed){revealed=true;body.classList.add('opening-reveal');document.dispatchEvent(new CustomEvent('hx:opening-swell'))}
-     // Flowers spill out once the envelope is open wide enough.
-     if(t>=4.85&&!spilled){spilled=true;
-       flowerImgs.length&&Array.from({length:30},(_,i)=>{const a=Math.random()*6.283;petals.push({im:flowerImgs[i%flowerImgs.length],a,r:6,v:120+Math.random()*200,w:(Math.random()<.5?-1:1)*(.8+Math.random()*1.2),s:16+Math.random()*20,rot:Math.random()*6.283,spin:(Math.random()-.5)*5,age:0})});
-     }
      // A golden flash covers the hand-over to the silk curtains, which then part on the temple arch.
      const flash=smooth(5.75,6.15,t)*(1-smooth(6.3,7.1,t));
      if(flash>0){lc.globalCompositeOperation='source-over';const g=lc.createRadialGradient(cx,cy,0,cx,cy,reach);g.addColorStop(0,`rgba(255,251,238,${.97*flash})`);g.addColorStop(1,`rgba(255,226,170,${.88*flash})`);lc.fillStyle=g;lc.fillRect(0,0,W,H);lc.globalCompositeOperation='lighter'}
      if(t>=6.05&&!flashed){flashed=true;curtains.classList.add('show');if(heroArt)heroArt.animate([{scale:'1.14'},{scale:'1'}],{duration:2100,easing:'cubic-bezier(.2,.7,.2,1)'})}
      if(t>=6.7&&!parted){parted=true;curtains.classList.add('part');document.dispatchEvent(new CustomEvent('hx:curtains-part'))}
-     // Sparks and swirling flowers.
+     // Sparks.
      for(let i=sparks.length-1;i>=0;i--){const p=sparks[i];p.age+=dt;if(p.age>p.life){sparks.splice(i,1);continue}p.vx*=.985;p.vy=p.vy*.985+140*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;dot(p.x,p.y,p.size,1-p.age/p.life)}
-     if(fc)for(let i=petals.length-1;i>=0;i--){const p=petals[i];p.age+=dt;if(p.age>2.3){petals.splice(i,1);continue}p.r+=p.v*dt;p.v*=.988;p.a+=p.w*dt;p.rot+=p.spin*dt;const x=cx+Math.cos(p.a)*p.r,y=cy+Math.sin(p.a)*p.r+40*p.age*p.age,s=p.s*Math.min(1,.4+p.age*1.6);
-       fc.globalAlpha=Math.min(1,p.age*4)*(1-smooth(1.5,2.3,p.age));fc.save();fc.translate(x,y);fc.rotate(p.rot);fc.drawImage(p.im,-s/2,-s/2,s,s);fc.restore()}
-     if(fc)fc.globalAlpha=1;
      if(t>=7.35)finish();
      if(t>=8.35)cleanup();
    }

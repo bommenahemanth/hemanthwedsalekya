@@ -6,13 +6,18 @@ METHOD:PUBLISH
 X-WR-CALNAME:Hemanth & Alekya’s Wedding
 BEGIN:VEVENT
 UID:muhurtham-2026@hemanth-alekya.wedding
-DTSTAMP:20261101T182414Z
+DTSTAMP:20261101T200218Z
 DTSTART:20261203T154700Z
 DTEND:20261203T184700Z
 SUMMARY:Marriage (Muhurtham) · Hemanth & Alekya’s Wedding
 DESCRIPTION:Jeelakarra–Bellam at the auspicious hour\, as two families 
  become one.\n\nWith love\, Hemanth Bommena & Alekya Vemula
 LOCATION:Avula Ranch\, 8411 Shady Brook Ln\, Celina\, TX 75009
+BEGIN:VALARM
+ACTION:DISPLAY
+DESCRIPTION:Tomorrow: Marriage (Muhurtham)
+TRIGGER:-P1D
+END:VALARM
 BEGIN:VALARM
 ACTION:DISPLAY
 DESCRIPTION:Reminder
