@@ -266,7 +266,7 @@ addEventListener('pagehide',endVisit);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)endVisit()});
 addEventListener('scroll',()=>{const h=document.documentElement.scrollHeight-innerHeight;if(h>0)VISIT.scroll=Math.max(VISIT.scroll,Math.min(100,Math.round(scrollY/h*100)))},{passive:true});
 [['events','section.events'],['rsvp','#rsvp'],['photos','#photos']].forEach(([k,sel])=>{const el=$(sel);if(el)new IntersectionObserver((es,io)=>{if(es.some(e=>e.isIntersecting)){VISIT.sections.add(k);io.disconnect()}},{threshold:.25}).observe(el)});
-const ACTIONS=[['map','#venue-link,a[href*="maps"],a[href^="geo:"]'],['calendar','[data-act=apple],[data-act=google],[data-g],#cal-google,#cal-ics,.date-btn'],['share','.ux-share'],['qr','.ux-qr'],['contact','.person,a[href*="wa.me"],a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"]'],['photos','#carousel'],['music','#music'],['find','#find-open,#find-top-open']];
+const ACTIONS=[['map','#venue-link,a[href*="maps"],a[href^="geo:"]'],['calendar','[data-act=apple],[data-act=google],[data-g],#cal-google,#cal-ics,.date-btn'],['share','.ux-share'],['qr','.ux-qr-btn'],['contact','.person,a[href*="wa.me"],a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"]'],['photos','#carousel'],['music','#music'],['find','#find-open,#find-top-open']];
 document.addEventListener('click',e=>{const hit=ACTIONS.find(([,sel])=>e.target.closest(sel));if(hit)VISIT.actions[hit[0]]=(VISIT.actions[hit[0]]||0)+1},{capture:true,passive:true});
 document.addEventListener('hx:rsvp',e=>{VISIT.rsvp=(e.detail&&e.detail.status)||'sent';endVisit()});
 document.addEventListener('input',e=>{if(!VISIT.rsvp&&e.target.closest('#rsvp-form'))VISIT.rsvp='started'},{passive:true});
