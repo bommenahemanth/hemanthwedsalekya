@@ -222,8 +222,6 @@
    btn.addEventListener('click',async()=>{ov.hidden=false;void ov.offsetWidth;ov.classList.add('show');ov.querySelector('.ux-qr-x').focus({preventScroll:true});try{wake=await navigator.wakeLock?.request('screen')}catch{}});
    ov.addEventListener('click',close);
    document.addEventListener('keydown',e=>{if(e.key==='Escape')close()});
-   // Lets guests know what is measured.
-   const note=document.createElement('p');note.className='ux-privacy';note.innerHTML='This invitation counts visits anonymously and uses Microsoft Clarity to see how it’s used. Your RSVP details are never recorded. <a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener noreferrer">Microsoft privacy</a>';share.after(note);
  }
 
  /* ---------- Secret admin: tap the groom, then the bride, in the closing painting ---------- */
