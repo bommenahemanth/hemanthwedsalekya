@@ -152,7 +152,8 @@
    sig.after(wrap);
    wrap.querySelector('button').addEventListener('click',async()=>{
      const text='Hemanth & Alekya invite you to their wedding celebrations \u00b7 29 Nov \u2013 3 Dec 2026 \ud83d\ude4f';
-     if(navigator.share){try{await navigator.share({title:document.title,text,url:shareUrl});return}catch(err){if(err&&err.name==='AbortError')return}}
+     // Link goes in the text: with a separate url field, phones preview the redirect target (github.io) instead.
+     if(navigator.share){try{await navigator.share({title:document.title,text:`${text}\n${shareUrl}`});return}catch(err){if(err&&err.name==='AbortError')return}}
      window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n${shareUrl}`)}`,'_blank','noopener');
    });
  }
