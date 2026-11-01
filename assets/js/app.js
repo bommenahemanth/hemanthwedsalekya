@@ -232,11 +232,15 @@ function onOpened(){
   }
   $('#fab').classList.add('show');
   VISIT.sections.add('opened');
+  if(!VISIT.openAfter){VISIT.openAfter=Math.round((Date.now()-VISIT.t0)/1000);track('envelope_open')}
 }
 
 /* ----- Visit analytics: no cookies and nothing stored on the device beyond this browser tab's session.
    One record per tab session; the backend keeps only a salted hash of the IP and coarse place (city/state/country). ----- */
-const VISIT={id:'',t0:Date.now(),sections:new Set(),actions:{},scroll:0,rsvp:''};
+const VISIT={id:'',t0:Date.now(),sections:new Set(),actions:{},scroll:0,rsvp:'',openAfter:0};
+// Every tap or milestone goes to both our own analytics and Microsoft Clarity (when Clarity is loaded on the live site).
+const cl=(...a)=>{try{if(window.clarity)window.clarity(...a)}catch{}};
+function track(k){if(!/^[a-z][a-z0-9_]{1,30}$/.test(k))return;VISIT.actions[k]=(VISIT.actions[k]||0)+1;cl('event',k)}
 function uaInfo(){const ua=navigator.userAgent,touchMac=/Macintosh/.test(ua)&&navigator.maxTouchPoints>1;
   const os=/iPhone|iPad|iPod/.test(ua)||touchMac?'iOS':/Android/.test(ua)?'Android':/Windows/.test(ua)?'Windows':/CrOS/.test(ua)?'ChromeOS':/Mac OS X/.test(ua)?'macOS':/Linux/.test(ua)?'Linux':'Other';
   const device=/iPad|Tablet/.test(ua)||touchMac||(/Android/.test(ua)&&!/Mobile/.test(ua))?'Tablet':/Mobi|iPhone|iPod|Android/.test(ua)?'Phone':'Computer';
@@ -255,21 +259,33 @@ function startVisit(){
   if(!WEDDING.apiUrl)return;
   try{VISIT.id=sessionStorage.getItem('hx-visit')||'';if(VISIT.id)return;VISIT.id=crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);sessionStorage.setItem('hx-visit',VISIT.id)}catch{return}
   let ref='';try{ref=document.referrer?new URL(document.referrer).hostname.replace(/^www\./,''):''}catch{}
-  const base={action:'visit',visitId:VISIT.id,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'',lang:navigator.language||'',screen:`${screen.width}x${screen.height}`,src,ref:ref===location.hostname?'':ref,...uaInfo()};
-  visitGeo().then(g=>api(Object.assign(base,g),0)).catch(()=>{})}
+  const base={action:'visit',visitId:VISIT.id,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'',lang:navigator.language||'',screen:`${screen.width}x${screen.height}`,viewport:`${innerWidth}x${innerHeight}`,
+    net:(navigator.connection&&navigator.connection.effectiveType)||'',theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',src,ref:ref===location.hostname?'':ref,...uaInfo()};
+  ['device','os','browser','app'].forEach(k=>{if(base[k])cl('set',k,base[k])});cl('set','source',src||ref||'direct');
+  visitGeo().then(g=>{if(g.country)cl('set','country',g.country);if(g.region)cl('set','state',g.region);return api(Object.assign(base,g),0)}).catch(()=>{})}
 function endVisit(){
   if(!VISIT.id||!WEDDING.apiUrl||!navigator.sendBeacon)return;
-  const body=JSON.stringify({action:'visitEnd',visitId:VISIT.id,duration:Math.round((Date.now()-VISIT.t0)/1000),scroll:VISIT.scroll,sections:[...VISIT.sections],actions:VISIT.actions,rsvp:VISIT.rsvp});
+  const nav=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0],loadMs=nav&&nav.loadEventEnd>0?Math.round(nav.loadEventEnd):0;
+  const body=JSON.stringify({action:'visitEnd',visitId:VISIT.id,duration:Math.round((Date.now()-VISIT.t0)/1000),scroll:VISIT.scroll,sections:[...VISIT.sections],actions:VISIT.actions,rsvp:VISIT.rsvp,loadMs,openAfter:VISIT.openAfter});
   try{navigator.sendBeacon(WEDDING.apiUrl,new Blob([body],{type:'text/plain;charset=utf-8'}))}catch{}}
 startVisit();
 addEventListener('pagehide',endVisit);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)endVisit()});
-addEventListener('scroll',()=>{const h=document.documentElement.scrollHeight-innerHeight;if(h>0)VISIT.scroll=Math.max(VISIT.scroll,Math.min(100,Math.round(scrollY/h*100)))},{passive:true});
-[['events','section.events'],['rsvp','#rsvp'],['photos','#photos']].forEach(([k,sel])=>{const el=$(sel);if(el)new IntersectionObserver((es,io)=>{if(es.some(e=>e.isIntersecting)){VISIT.sections.add(k);io.disconnect()}},{threshold:.25}).observe(el)});
-const ACTIONS=[['map','#venue-link,a[href*="maps"],a[href^="geo:"]'],['calendar','[data-act=apple],[data-act=google],[data-g],#cal-google,#cal-ics,.date-btn'],['share','.ux-share'],['qr','.ux-qr-btn'],['contact','.person,a[href*="wa.me"],a[href^="tel:"],a[href^="sms:"],a[href^="mailto:"]'],['photos','#carousel'],['music','#music'],['find','#find-open,#find-top-open']];
-document.addEventListener('click',e=>{const hit=ACTIONS.find(([,sel])=>e.target.closest(sel));if(hit)VISIT.actions[hit[0]]=(VISIT.actions[hit[0]]||0)+1},{capture:true,passive:true});
-document.addEventListener('hx:rsvp',e=>{VISIT.rsvp=(e.detail&&e.detail.status)||'sent';endVisit()});
-document.addEventListener('input',e=>{if(!VISIT.rsvp&&e.target.closest('#rsvp-form'))VISIT.rsvp='started'},{passive:true});
+addEventListener('scroll',()=>{const h=document.documentElement.scrollHeight-innerHeight;if(h>0)VISIT.scroll=Math.max(VISIT.scroll,Math.min(100,Math.round(scrollY/h*100)));[25,50,75,100].forEach(m=>{if(VISIT.scroll>=m&&!VISIT.actions['scroll_'+m])track('scroll_'+m)})},{passive:true});
+[['events','section.events'],['rsvp','#rsvp'],['photos','#photos']].forEach(([k,sel])=>{const el=$(sel);if(el)new IntersectionObserver((es,io)=>{if(es.some(e=>e.isIntersecting)){VISIT.sections.add(k);track('saw_'+k);io.disconnect()}},{threshold:.25}).observe(el)});
+// First match wins, so specific selectors come before general ones.
+const CLICKS=[['.ux-qr-btn','qr'],['.ux-share','share'],['#music',()=>musicOn?'music_off':'music_on'],
+  ['[data-act=apple],#cal-ics','calendar_apple'],['[data-act=google],#cal-google','calendar_google'],['.g-all [data-g]','calendar_google_all'],['[data-g]','calendar_google_one'],['.date-btn','event_calendar'],
+  ['#venue-link,a[href*="maps"],a[href^="geo:"]','map'],['.find-wa a','find_whatsapp'],['a[href*="wa.me"]','whatsapp'],['a[href^="tel:"]','call'],['a[href^="sms:"]','text'],['a[href^="mailto:"]','email'],
+  ['.person',el=>'contact_'+((el.querySelector('b')||{}).textContent||'').toLowerCase().replace(/[^a-z]/g,'')],
+  ['#find-open,#find-top-open','find_open'],['#fab','rsvp_button'],['[data-act=withdraw]','rsvp_withdraw'],['[data-act=edit]','rsvp_edit'],
+  ['.lb-nav','photo_next'],['.car-dots button','photo_dot'],['#carousel','photo_open'],
+  ['.tl-item',el=>{const h=el.querySelector('h3[id^="ev-"]');return h?'event_'+h.id.slice(3):''}]];
+document.addEventListener('click',e=>{for(const[sel,k]of CLICKS){const el=e.target.closest(sel);if(el){const key=typeof k==='function'?k(el):k;if(key)track(key);break}}},{capture:true,passive:true});
+document.addEventListener('hx:rsvp',e=>{const st=(e.detail&&e.detail.status)||'sent';VISIT.rsvp=st;track('rsvp_sent');cl('set','rsvp',st);cl('upgrade','rsvp sent');endVisit()});
+document.addEventListener('input',e=>{if(!VISIT.rsvp&&e.target.closest('#rsvp-form')){VISIT.rsvp='started';track('rsvp_start')}},{passive:true});
+document.addEventListener('change',e=>{const t=e.target;if(t.name==='status'&&t.checked&&t.closest('#rsvp-form'))track('rsvp_'+t.value)},{passive:true});
+document.addEventListener('click',e=>{if(e.target.closest('#rsvp-submit'))setTimeout(()=>{if($('#rsvp-form .invalid'))track('rsvp_error')},60)},{passive:true});
 try{localStorage.removeItem('hx-vid')}catch{}
 
 /* ----- RSVP form ----- */
@@ -419,7 +435,7 @@ $('#find-open').onclick=openFind;$('#find-top-open').onclick=openFind;
 findForm.addEventListener('submit',async e=>{e.preventDefault();const f=findForm,er=$('#find-error');er.textContent='';$('#find-help').hidden=true;
   const pe=phoneError(phoneOf(f),false);if(pe){er.textContent=pe;return}
   const btn=f.querySelector('[type=submit]');btn.disabled=true;
-  try{const r=await api({action:'find',phone:phoneOf(f)});
+  try{const r=await api({action:'find',phone:phoneOf(f)});track(r.ok?'find_ok':'find_fail');
     if(r.ok){rs.saved={id:r.id,secret:r.secret};rs.last=r.rsvp;$('#find').close();enterEdit(r.rsvp)}
     else{er.textContent=r.error==='rate_limited'?'Too many attempts. Please wait a few minutes.':'We couldn’t find that number. Check it, or message Hemanth below.';if(r.error!=='rate_limited')findHelp(f)}}
   catch(err){er.textContent=errText(err)}finally{btn.disabled=false}});
@@ -462,7 +478,7 @@ function renderAdmin(){const r=admData,s=r.stats,v=r.visits,g=s.accommodation.ge
   const kp=[['g',s.people.yes,'Attending'],['a',s.people.maybe,'Tentative'],['r',s.responses.no,'Declined'],['',s.responses.total,'Responses'],['',s.people.adultsYes,'Adults'],['',s.people.kidsYes,'Kids'],['',s.people.plusOnesYes,'Plus-ones'],['',s.accommodation.people,'Need stay'],[s.accommodation.capacity&&s.accommodation.peakNight>s.accommodation.capacity?'r':'',`${s.accommodation.peakNight}${s.accommodation.capacity?` / ${s.accommodation.capacity}`:''}`,'Peak night'],[net<0?'r':net>0?'g':'',`${net>0?'+':net<0?'−':''}${Math.abs(net)}`,'Net change 7d'],['',v.unique??v.total,'Unique visitors']];
   const kpis=list=>`<div class="kpis">${list.map(([c,n,l])=>`<div class="kpi ${c}"><b>${n}</b><span>${l}</span></div>`).join('')}</div>`;
   const mail=r.mail&&r.mail.at?(r.mail.ok?`Last email ${esc(fmtTime(r.mail.at))} · ${r.mail.quota} left today`:`<b class="neg">Emails failing: ${esc(r.mail.error)}</b>`):'';
-  const tabs=[['overview','Overview',''],['guests','Guests',r.rsvps.length],['history','History',r.history.length],['visits','Visits',v.unique??'']];
+  const tabs=[['overview','Overview',''],['guests','Guests',r.rsvps.length],['history','History',r.history.length],['visits','Analytics',v.unique??'']];
   const pane=(k,html)=>`<section class="adm-pane" id="adm-${k}" role="tabpanel" aria-labelledby="adm-tab-${k}"${admTab===k?'':' hidden'}>${html}</section>`;
   $('#admin').innerHTML=`<div class="adm-wrap"><header class="adm-top"><div class="adm-title"><h2>RSVP dashboard</h2><p class="adm-sub">Updated ${esc(fmtTime(r.generatedAt))}${mail?` · ${mail}`:''}</p></div>
    <div class="adm-btns"><button class="btn solid" data-a="add">＋ Add guest</button><button class="btn adm-ic" data-a="refresh"><span aria-hidden="true">↻</span> Refresh</button><button class="btn adm-ic" data-a="csv"><span aria-hidden="true">⤓</span> CSV</button><button class="btn adm-ic close" data-a="close" aria-label="Close dashboard"><span aria-hidden="true">✕</span> Close</button></div></header>
@@ -486,27 +502,47 @@ function guestTable(list,hist){const EV=Object.fromEntries(WEDDING.events.map(e=
     return`<tr><td>${name}${x.source==='admin'?'<br><small>added by you</small>':''}</td><td><span class="pill ${esc(x.status)}">${STL[x.status]||esc(x.status)}</span></td><td>${going?`<b>${adults+x.kids}</b> <small>${adults} adult${adults>1?'s':''}${x.kids?` · ${x.kids} kid${x.kids>1?'s':''}`:''}</small>`:'—'}</td><td>${going?`${esc(dKey(x.arrival))}<br><small>→ ${esc(dKey(x.departure))}</small>`:'—'}</td><td>${going&&x.accommodation?'<span class="tag-chip stay">Needs stay</span>':'—'}</td><td>${going?x.events.map(id=>EV[id]?`<span class="ev-chip" style="--c:${esc(EV[id].accent)}">${esc(EV[id].title.replace(/ \(.*\)$/,'').replace(/ \/.*$/,''))}</span>`:'').join(''):'—'}</td><td>${going&&x.plusOnes.length?x.plusOnes.map(p=>esc([p.name||'Guest',GL[p.gender]||''].filter(Boolean).join(' · '))).join('<br>'):'—'}</td><td>${x.phone?`<a href="${esc('https://wa.me/'+x.phone.replace(/\D/g,''))}" target="_blank" rel="noopener noreferrer">${esc(x.phone)}</a>`:'—'}</td><td class="note">${esc(x.message)||'—'}</td><td><small>${esc(fmtTime(x.createdAt))}</small></td><td><small>${esc(fmtTime(x.updatedAt))}</small></td><td class="act"><button type="button" class="ico" data-edit="${esc(x.id)}" aria-label="Edit ${name}" title="Edit">✎</button><button type="button" class="ico" data-goto-hist="${esc(x.firstName+' '+x.lastName)}" aria-label="History of ${name}" title="History (${hist(x.id).length})">⧖</button><button type="button" class="ico del" data-del="${esc(x.id)}" aria-label="Delete ${name}" title="Delete">✕</button></td></tr>`}).join('');
   return`<table class="adm-tbl guests"><thead><tr><th>Guest</th><th>Reply</th><th>Party</th><th>Dates</th><th>Stay</th><th>Events</th><th>Plus-ones</th><th>WhatsApp</th><th>Note</th><th>Replied (CT)</th><th>Updated (CT)</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="12" class="adm-empty">No RSVPs match.</td></tr>'}</tbody></table>`}
 const dur=s=>!s?'—':s>=3600?`${Math.floor(s/3600)}h ${Math.round(s%3600/60)}m`:s>=60?`${Math.floor(s/60)}m ${s%60}s`:`${s}s`;
-const SEC={opened:'Opened',events:'Events',rsvp:'RSVP',photos:'Photos'},ACTN={map:'Map',calendar:'Calendar',share:'Share',qr:'QR',contact:'Contact',photos:'Photo viewer',music:'Music',find:'Find RSVP'};
-function visitsPane(v){const A=v.analytics||{},F=A.funnel||{},pct=(a,b)=>b?Math.round(a/b*100)+'%':'—',top=(list,n=8)=>(list||[]).length?bars(list.slice(0,n).map(x=>({label:x.label,a:x.n})),false):'<p class="legend">No data yet.</p>';
-  const k=[['g',v.unique??'—','Unique visitors'],['',A.returning??0,'Returning'],['',A.newPeople??0,'First-time'],['',v.total,'Total visits'],['a',v.uniqueToday??'—','Unique today'],['',v.today,'Visits today'],['',dur(A.avgDuration),'Avg time on page'],['',(A.avgScroll??0)+'%','Avg scrolled'],[F.sent?'g':'',pct(F.sent,F.visited),'Sent an RSVP']];
+const SEC={opened:'Opened',events:'Events',rsvp:'RSVP',photos:'Photos'};
+const EVL={envelope_open:'Opened the envelope',music_on:'Turned music on',music_off:'Turned music off',qr:'Opened the QR code',share:'Tapped Share',map:'Opened the map',calendar_apple:'Added to Apple Calendar',calendar_google:'Added to Google Calendar',calendar_google_all:'Google: added all events',calendar_google_one:'Google: added one event',event_calendar:'Opened an event’s calendar',whatsapp:'Tapped a WhatsApp link',call:'Tapped a call link',text:'Tapped a text link',email:'Tapped an email link',find_open:'Opened “Find my RSVP”',find_ok:'Found their RSVP',find_fail:'Couldn’t find their RSVP',find_whatsapp:'Messaged Hemanth after not finding it',rsvp_button:'Tapped the RSVP button',rsvp_start:'Started the RSVP form',rsvp_yes:'Chose “Attending”',rsvp_maybe:'Chose “Tentative”',rsvp_no:'Chose “Can’t come”',rsvp_error:'Hit a form error',rsvp_sent:'Sent or updated an RSVP',rsvp_edit:'Opened “Update”',rsvp_withdraw:'Tapped “Withdraw”',photo_open:'Opened a photo',photo_next:'Swiped photos in full view',photo_dot:'Tapped photo dots',scroll_25:'Scrolled a quarter',scroll_50:'Scrolled halfway',scroll_75:'Scrolled three quarters',scroll_100:'Reached the end',saw_events:'Saw the events',saw_rsvp:'Saw the RSVP form',saw_photos:'Saw the photos'};
+const evLabel=k=>EVL[k]||(k.startsWith('event_')?'Tapped event: '+((WEDDING.events.find(e=>'event_'+e.id===k)||{}).title||k.slice(6)):k.startsWith('contact_')?'Opened contact: '+k.slice(8).replace(/^./,c=>c.toUpperCase()):k.replace(/_/g,' '));
+const PAL=['#a3162b','#c9a24a','#2f7d43','#2c5d8a','#8e2453','#e0a100','#5b3a8a','#d9480f','#6b3c12','#9b8f80'];
+// Pie (donut) of the top 6 with the rest grouped as “Other”.
+function pie(list){list=(list||[]).filter(x=>x.n);if(!list.length)return'<p class="legend">No data yet.</p>';const head=list.slice(0,6),rest=list.slice(6).reduce((a,x)=>a+x.n,0);
+  return donut(head.map((x,i)=>({l:x.label,v:x.n,c:PAL[i]})).concat(rest?[{l:'Other',v:rest,c:PAL[9]}]:[]))}
+// Ranked table with a share bar, for places and similar lists.
+function rankTable(list,total,head='People',n=15){list=(list||[]).filter(x=>x.n);if(!list.length)return'<p class="legend">No data yet.</p>';
+  return`<div class="adm-tbl-wrap mini"><table class="adm-tbl rank"><thead><tr><th>#</th><th>Name</th><th>${head}</th><th>Share</th></tr></thead><tbody>${list.slice(0,n).map((x,i)=>{const p=total?Math.round(x.n/total*100):0;return`<tr><td>${i+1}</td><td>${esc(x.label)}</td><td><b>${x.n}</b></td><td><span class="share"><i style="width:${p}%"></i></span> ${p}%</td></tr>`}).join('')}</tbody></table></div>`}
+function columns(vals,labels,title){const max=Math.max(1,...vals);return`<div class="hours" style="grid-template-columns:repeat(${vals.length},1fr)">${vals.map((n,i)=>`<i style="height:${n/max*100}%" title="${esc(labels[i])} · ${n} ${title}"></i>`).join('')}</div>`}
+function visitsPane(v){const A=v.analytics||{},F=A.funnel||{},P=A.people||0,pct=(a,b)=>b?Math.round(a/b*100)+'%':'—',top=(list,n=8)=>(list||[]).length?bars(list.slice(0,n).map(x=>({label:x.label,a:x.n})),false):'<p class="legend">No data yet.</p>';
+  const k=[['g',v.unique??'—','Unique visitors'],['',A.returning??0,'Returning'],['',A.newPeople??0,'First-time'],['',v.total,'Total visits'],['a',v.uniqueToday??'—','Unique today'],['',v.today,'Visits today'],['',dur(A.avgDuration),'Avg time on page'],['',dur(A.medianDuration),'Typical time'],['',(A.avgScroll??0)+'%','Avg scrolled'],['',pct(F.opened,F.visited),'Opened envelope'],[F.sent?'g':'',pct(F.sent,F.visited),'Sent an RSVP'],['',A.avgOpenAfter?A.avgOpenAfter+'s':'—','Time to open'],['',A.avgLoadMs?(A.avgLoadMs/1000).toFixed(1)+'s':'—','Page load']];
   const steps=[['Visited',F.visited],['Opened the envelope',F.opened],['Saw the events',F.events],['Reached the RSVP form',F.rsvpSeen],['Started an RSVP',F.started],['Sent an RSVP',F.sent],['Saw the photos',F.photos]];
-  const hours=A.hours||[],hmax=Math.max(1,...hours);
-  const recent=(A.recent||[]).map(r=>`<tr><td>${esc(fmtTime(r.at))}</td><td>${r.who?`<code>${esc(r.who)}</code>`:'—'}${r.returning?' <span class="tag-chip ret">returning</span>':''}</td><td>${esc(r.place||'—')}</td><td>${esc([r.device,r.os].filter(Boolean).join(' · '))}<br><small>${esc(r.browser||'')}</small></td><td><span class="tag-chip src">${esc(r.source||'—')}</span></td><td>${dur(r.duration)}</td><td>${r.scroll?r.scroll+'%':'—'}</td><td>${(r.sections||[]).map(s=>`<span class="tag-chip">${esc(SEC[s]||s)}</span>`).join('')||'—'}</td><td>${(r.actions||[]).map(s=>`<span class="tag-chip act">${esc(ACTN[s]||s)}</span>`).join('')||'—'}</td><td>${r.rsvp?`<span class="pill ${r.rsvp==='started'?'maybe':esc(r.rsvp)}">${r.rsvp==='started'?'Started':STL[r.rsvp]||'Sent'}</span>`:'—'}</td></tr>`).join('');
-  return `<div class="kpis">${k.map(([c,n,l])=>`<div class="kpi ${c}"><b>${n}</b><span>${l}</span></div>`).join('')}</div><p class="adm-note">No cookies or stored IDs. People are told apart by IP address, kept only as a scrambled code, so a family on one Wi‑Fi counts once and phones on mobile data may count twice. Place comes from the IP and is usually right for the country, roughly right for the city. Breakdowns count people, not page loads.</p>
+  const daily=(v.daily||[]).slice(-30),dLabel=d=>new Date(d.date+'T12:00').toLocaleDateString([],{month:'short',day:'numeric'});
+  const dmax=Math.max(1,...daily.map(d=>d.visits));
+  const dailyChart=daily.length?`<div class="dcols">${daily.map(d=>{const u=d.unique??d.visits,r=Math.max(0,d.visits-u);return`<div title="${esc(dLabel(d))}: ${u} unique, ${d.visits} visits"><i class="r" style="height:${r/dmax*100}%"></i><i class="u" style="height:${u/dmax*100}%"></i></div>`}).join('')}</div><div class="hours-l"><span>${esc(dLabel(daily[0]))}</span><span>${esc(dLabel(daily[daily.length-1]))}</span></div><p class="legend"><i class="lg a"></i>Unique visitors<i class="lg m"></i>Repeat visits</p>`:'<p class="legend">No visits yet.</p>';
+  const evs=(A.events||[]),evRows=evs.map((e,i)=>`<tr><td>${i+1}</td><td>${esc(evLabel(e.label))}</td><td><b>${e.people}</b></td><td><span class="share"><i style="width:${P?Math.round(e.people/P*100):0}%"></i></span> ${pct(e.people,P)}</td><td>${e.total}</td></tr>`).join('');
+  const recent=(A.recent||[]).map(r=>`<tr><td>${esc(fmtTime(r.at))}</td><td>${r.who?`<code>${esc(r.who)}</code>`:'—'}${r.returning?' <span class="tag-chip ret">returning</span>':''}</td><td>${esc(r.place||'—')}</td><td>${esc([r.device,r.os].filter(Boolean).join(' · '))}<br><small>${esc([r.browser,r.size,r.net&&r.net.toUpperCase(),r.theme==='dark'?'dark mode':''].filter(Boolean).join(' · '))}</small></td><td><span class="tag-chip src">${esc(r.source||'—')}</span></td><td>${dur(r.duration)}${r.openAfter?`<br><small>opened after ${r.openAfter}s</small>`:''}</td><td>${r.scroll?r.scroll+'%':'—'}</td><td>${(r.sections||[]).map(s=>`<span class="tag-chip">${esc(SEC[s]||s)}</span>`).join('')||'—'}</td><td>${(r.actions||[]).filter(s=>!/^(scroll_|saw_)/.test(s)).map(s=>`<span class="tag-chip act">${esc(evLabel(s))}</span>`).join('')||'—'}</td><td>${r.rsvp?`<span class="pill ${r.rsvp==='started'?'maybe':esc(r.rsvp)}">${r.rsvp==='started'?'Started':STL[r.rsvp]||'Sent'}</span>`:'—'}</td><td>${esc(r.tz||'—')}</td></tr>`).join('');
+  const WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return `<div class="kpis">${k.map(([c,n,l])=>`<div class="kpi ${c}"><b>${n}</b><span>${l}</span></div>`).join('')}</div><p class="adm-note">No cookies or stored IDs. People are told apart by IP address, kept only as a scrambled code, so a family on one Wi‑Fi counts once and phones on mobile data may count twice. Place comes from the IP: right for the country, roughly right for the city. Breakdowns count people, not page loads. Microsoft Clarity gets the same events for its recordings and heatmaps.</p>
   <div class="adm-grid">
-   <div class="panel"><h3>Last 30 days</h3>${v.daily.length?bars(v.daily.slice(-30).reverse().map(d=>({label:new Date(d.date+'T12:00').toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'}),a:d.unique??d.visits,b:Math.max(0,d.visits-(d.unique??d.visits))})),true,'Solid = unique visitors · striped = repeat visits'):'<p class="legend">No visits yet.</p>'}</div>
+   <div class="panel wide"><h3>Visitors · last 30 days</h3>${dailyChart}</div>
    <div class="panel funnel"><h3>How far people got</h3>${bars(steps.map(([l,n])=>({label:`${l} · ${pct(n||0,F.visited)}`,a:n||0})),false)}</div>
-   <div class="panel"><h3>Countries</h3>${top(A.countries)}</div>
-   <div class="panel"><h3>States &amp; regions</h3>${top(A.regions)}</div>
-   <div class="panel"><h3>Cities</h3>${top(A.cities,10)}</div>
-   <div class="panel"><h3>Came from</h3>${top(A.sources)}<p class="legend">Add ?src=family (or any word) to links you share to see them here. The QR card reports as “QR code”.</p></div>
-   <div class="panel"><h3>Devices</h3>${top(A.devices)}<h3 style="margin-top:14px">Systems</h3>${top(A.os)}</div>
-   <div class="panel"><h3>Browsers &amp; apps</h3>${top(A.browsers)}</div>
-   <div class="panel"><h3>Time of day (Central)</h3><div class="hours">${hours.map((n,h)=>`<i style="height:${n/hmax*100}%" title="${h}:00 · ${n} visit${n===1?'':'s'}"></i>`).join('')}</div><div class="hours-l"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div></div>
-   <div class="panel"><h3>What they tapped</h3>${top((A.actions||[]).filter(x=>x.n).map(x=>({label:ACTN[x.label]||x.label,n:x.n})))}</div>
-   <div class="panel"><h3>Their time zones</h3>${top(A.timezones)}<h3 style="margin-top:14px">Languages</h3>${top(A.languages)}</div>
+   <div class="panel"><h3>New vs returning</h3>${pie(A.returningSplit)}</div>
+   <div class="panel"><h3>Countries</h3>${pie(A.countries)}${rankTable(A.countries,P,'People',10)}</div>
+   <div class="panel"><h3>States &amp; regions</h3>${top(A.regions,10)}</div>
+   <div class="panel wide"><h3>Cities</h3>${rankTable(A.cities,P,'People',20)}</div>
+   <div class="panel"><h3>Came from</h3>${pie(A.sources)}<p class="legend">Add ?src=family (or any word) to links you share to see them here. The QR code reports as “QR code”, the Share button as “Shared link”.</p></div>
+   <div class="panel"><h3>Devices</h3>${pie(A.devices)}</div>
+   <div class="panel"><h3>Phone &amp; computer systems</h3>${pie(A.os)}</div>
+   <div class="panel"><h3>Browsers &amp; apps</h3>${pie(A.browsers)}</div>
+   <div class="panel"><h3>Screen sizes</h3>${pie(A.sizes)}</div>
+   <div class="panel"><h3>Connection &amp; display</h3>${top(A.networks)}<h3 style="margin-top:14px">Light or dark mode</h3>${pie(A.themes)}</div>
+   <div class="panel"><h3>Time of day (Central)</h3>${columns(A.hours||[],(A.hours||[]).map((_,h)=>`${h}:00`),'visits')}<div class="hours-l"><span>12 am</span><span>6 am</span><span>12 pm</span><span>6 pm</span><span>11 pm</span></div></div>
+   <div class="panel"><h3>Day of the week</h3>${bars((A.weekdays||[]).map((n,i)=>({label:WD[i],a:n})),false)}</div>
+   <div class="panel wide"><h3>Everything people did</h3>${evRows?`<div class="adm-tbl-wrap mini"><table class="adm-tbl rank"><thead><tr><th>#</th><th>What</th><th>People</th><th>Share of visitors</th><th>Times</th></tr></thead><tbody>${evRows}</tbody></table></div>`:'<p class="legend">No taps recorded yet.</p>'}</div>
+   <div class="panel"><h3>Their time zones</h3>${top(A.timezones)}</div>
+   <div class="panel"><h3>Languages</h3>${top(A.languages)}</div>
   </div>
-  <div class="panel wide" style="margin-top:12px"><h3>Recent visits</h3><div class="adm-tbl-wrap"><table class="adm-tbl"><thead><tr><th>When (CT)</th><th>Visitor</th><th>Place</th><th>Device</th><th>Came from</th><th>Time</th><th>Scrolled</th><th>Saw</th><th>Tapped</th><th>RSVP</th></tr></thead><tbody>${recent||'<tr><td colspan="10" class="adm-empty">No visits recorded yet.</td></tr>'}</tbody></table></div></div>`}
+  <div class="panel wide" style="margin-top:12px"><h3>Recent visits</h3><div class="adm-tbl-wrap"><table class="adm-tbl"><thead><tr><th>When (CT)</th><th>Visitor</th><th>Place</th><th>Device</th><th>Came from</th><th>Time</th><th>Scrolled</th><th>Saw</th><th>Did</th><th>RSVP</th><th>Time zone</th></tr></thead><tbody>${recent||'<tr><td colspan="11" class="adm-empty">No visits recorded yet.</td></tr>'}</tbody></table></div></div>`}
 const ACT={created:'Sent RSVP',updated:'Updated',withdrawn:'Withdrew','edited by admin':'Edited by you','added by admin':'Added by you','deleted by admin':'Deleted by you'};
 const FLD={headcount:'Headcount',firstName:'First name',lastName:'Last name',plusOnes:'Plus-ones',kids:'Kids',accommodation:'Stay',arrival:'Arriving',departure:'Leaving',events:'Events',travel:'Travel',flight:'Flight',food:'Food',message:'Note',status:'Reply',gender:'Gender',phone:'WhatsApp',email:'Email'};
 const actTone=a=>/delet|withdr/.test(a)?'r':/creat|add/.test(a)?'g':'a';
