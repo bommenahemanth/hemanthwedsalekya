@@ -168,7 +168,7 @@ function initWeddingFlowers({art,root,body,reduced}){
    height=Math.max(1,box.height||innerHeight||root.clientHeight||844);
    dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
    if(ctx)ctx.setTransform(dpr,0,0,dpr,0,0);
-   const count=width<350?10:width<390?13:14;
+   const count=width<350?9:width<390?12:13;
    if(sprites.length!==count){sprites.length=0;for(let i=0;i<count;i++){const q=(i+.5)/count,key=specs.find(([,limit])=>q<limit)[0],sprite={key};place(sprite,true);sprites.push(sprite)}}
    if(quiet&&ctx)ctx.clearRect(0,0,width,height);
  }
@@ -371,15 +371,13 @@ initWeddingFlowers({art,root,body,reduced});
      const inner=smooth(4.2,5.4,t)*(1-smooth(5.9,6.8,t));
      if(inner>0){const rad=reach*(.22+.38*inner),g=lc.createRadialGradient(cx,cy,0,cx,cy,rad);g.addColorStop(0,`rgba(255,248,222,${.62*inner})`);g.addColorStop(.4,`rgba(255,210,125,${.3*inner})`);g.addColorStop(1,'rgba(255,180,80,0)');lc.fillStyle=g;lc.fillRect(0,0,W,H)}
      if(t>=4.2&&!revealed){revealed=true;body.classList.add('opening-reveal');document.dispatchEvent(new CustomEvent('hx:opening-swell'))}
-     // A golden flash covers the hand-over to the silk curtains, which then part on the temple arch.
-     const flash=smooth(5.75,6.15,t)*(1-smooth(6.3,7.1,t));
-     if(flash>0){lc.globalCompositeOperation='source-over';const g=lc.createRadialGradient(cx,cy,0,cx,cy,reach);g.addColorStop(0,`rgba(255,251,238,${.97*flash})`);g.addColorStop(1,`rgba(255,226,170,${.88*flash})`);lc.fillStyle=g;lc.fillRect(0,0,W,H);lc.globalCompositeOperation='lighter'}
-     if(t>=6.05&&!flashed){flashed=true;curtains.classList.add('show');if(heroArt)heroArt.animate([{scale:'1.14'},{scale:'1'}],{duration:2100,easing:'cubic-bezier(.2,.7,.2,1)'})}
-     if(t>=6.7&&!parted){parted=true;curtains.classList.add('part');document.dispatchEvent(new CustomEvent('hx:curtains-part'))}
+     // The silk curtains wait right behind the envelope, so the opening flaps reveal them (no empty stage), then they part.
+     if(t>=4.1&&!flashed){flashed=true;curtains.classList.add('show')}
+     if(t>=5.9&&!parted){parted=true;curtains.classList.add('part');if(heroArt)heroArt.animate([{scale:'1.14'},{scale:'1'}],{duration:2100,easing:'cubic-bezier(.2,.7,.2,1)'});document.dispatchEvent(new CustomEvent('hx:curtains-part'))}
      // Sparks.
      for(let i=sparks.length-1;i>=0;i--){const p=sparks[i];p.age+=dt;if(p.age>p.life){sparks.splice(i,1);continue}p.vx*=.985;p.vy=p.vy*.985+140*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;dot(p.x,p.y,p.size,1-p.age/p.life)}
-     if(t>=7.35)finish();
-     if(t>=8.35)cleanup();
+     if(t>=6.6)finish();
+     if(t>=7.6)cleanup();
    }
    raf=requestAnimationFrame(frame);
    setTimeout(()=>{if(!done)cleanup()},11000);

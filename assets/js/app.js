@@ -19,7 +19,7 @@ const WEDDING={
   // Drive times checked on Google Maps (Sat 31 Oct 2026, light traffic).
   airports:[{code:'DFW',name:'Dallas Fort Worth International',origin:'DFW Airport, TX',miles:45,mins:50},{code:'DAL',name:'Dallas Love Field',origin:'Dallas Love Field, Dallas, TX',miles:46,mins:55}],
   // Slideshow photos after the first (inline) one; loaded only as they come up.
-  photos:['photos/02.jpg','photos/03.jpg','photos/04.jpg','photos/05.jpg','photos/06.jpg'],
+  photos:['photos/02.webp','photos/03.jpg','photos/04.webp','photos/05.webp','photos/06.webp'],
   // Set to true (and PHOTOS_OPEN=yes on the backend) to let guests share photos.
   photoDrop:false,
   music:{src:'music/pipa-says.m4a',credit:'Music: “What the Pipa Says” (琵琶語) by Lin Hai, © 2003 Wind Music International',link:'https://open.spotify.com/track/0XeklzlYWRCqgplYDVitZl'},
@@ -190,7 +190,7 @@ const waSvg=svgI('<path d="M4 16.5 5 13a6.6 6.6 0 1 1 2.4 2.4Z"/><path d="M8 7.5
  const who=()=>{const n=$('#rsvp-form').elements.fullName.value.replace(/\s+/g,' ').trim();return n||(rs.last?`${rs.last.firstName} ${rs.last.lastName}`:'')};
  const tone=p=>`--c1:${p.c1};--c2:${p.c2}`;
  $('#people').innerHTML=C.map((p,i)=>`<button type="button" class="person" style="${tone(p)}" data-i="${i}" aria-haspopup="dialog"><span class="medal" aria-hidden="true">${esc(p.name[0])}</span><b>${esc(p.name)}</b><small>${esc(p.role)}</small><span class="te" lang="te">${esc(p.te)}</span></button>`).join('');
- function openPerson(p){const n=who(),hi=`Namaste ${p.name}! ${n?`This is ${n}. `:''}I have a question about the wedding: `;
+ function openPerson(p){const n=who(),hi=`Hey ${p.name}! ${n?`It’s ${n} here. `:''}Quick question about the wedding: `;
    const groom=p.name==='Hemanth',phones=p.phones||[],usa=phones.find(ph=>ph.tag==='USA'||/^\+1/.test(ph.n))||phones[0],india=phones.find(ph=>ph.tag==='India'||/^\+91/.test(ph.n))||phones[0];
    const head=`<div class="ct-head ceremonial-head" style="${tone(p)}"><span class="medal lg" aria-hidden="true">${esc(p.name[0])}</span><p class="eyebrow">${esc(p.relation)}</p><h3 id="ct-name">${esc(p.name)}</h3><p class="te" lang="te">${esc(p.te)}</p></div>`;
    const routes=groom?`<div class="ct-routes" aria-label="Contact Hemanth"><a class="btn wa" href="https://wa.me/${india.n.replace(/\D/g,'')}?text=${e(hi)}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Hemanth on his Indian number">${waSvg}<span>WhatsApp</span></a><a class="btn call" href="tel:${esc(usa.n)}" aria-label="Call Hemanth on his USA number">${phoneSvg}<span>Call</span></a><a class="btn imsg" href="sms:bommenahemanth@gmail.com" aria-label="iMessage Hemanth">${imsgSvg}<span>iMessage</span></a></div>`:
@@ -422,7 +422,7 @@ function busyBtn(btn,steps){const html=btn.innerHTML;let k=0;btn.disabled=true;b
 const shake=el=>{el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake')};
 form.addEventListener('submit',async ev=>{ev.preventDefault();$('#form-error').textContent='';
   const d=collect(),errs=clientErrors(d);showErrors(errs);if(Object.keys(errs).length)return;
-  const editing=rs.mode==='edit',going=d.status==='yes'||d.status==='maybe';
+  const editing=rs.mode==='edit',going=d.status==='yes'||d.status==='maybe';rs.sit=editing?msgSituation():d.status;
   const bb=busyBtn($('#rsvp-submit'),editing?['Updating your RSVP…','Saving your changes…','Letting Hemanth & Alekya know…','Almost done…']:['Sending your RSVP…',going?'Saving your dates…':'Saving your reply…','Letting Hemanth & Alekya know…','Almost done…']);
   form.classList.add('sending');
   try{
@@ -436,13 +436,34 @@ form.addEventListener('submit',async ev=>{ev.preventDefault();$('#form-error').t
     $('#form-error').textContent=r.error==='rate_limited'?'Too many attempts. Please wait a few minutes and try again.':'Something went wrong. Please try again.'
   }catch(e){$('#form-error').textContent=errText(e)}
   finally{form.classList.remove('sending');bb.end(rs.mode==='edit'?'Update RSVP':'Send RSVP');if($('#form-error').textContent)shake($('#form-error'))}});
+// A warm, ready-to-send WhatsApp note to Hemanth that fits what the guest just did.
+function heyHemanth(k,r,n,dates,mine){const name=r.firstName||'me',evs=mine.map(e=>e.short).join(mine.length>2?', ':' and ').replace(/, ([^,]*)$/,' and $1')||'the wedding',party=`party of ${n}`;
+  const T={
+    yes:`Hey Hemanth! 🎉 It’s ${name}, and we’re coming! ${n>1?`We’re a ${party}, `:''}see you at ${evs}. Can’t wait to celebrate you and Alekya!`,
+    maybe:`Hey Hemanth! It’s ${name} 🤞 Trying my very best to make it, so I’ve said tentative for now. Will confirm soon!`,
+    no:`Hey Hemanth, it’s ${name}. So sorry I can’t make it 😔 Sending you and Alekya loads of love and blessings!`,
+    withdrawn:`Hey Hemanth, it’s ${name}. Plans changed last minute and I had to withdraw my RSVP 😞 Really sorry! Wishing you both a beautiful wedding.`,
+    nowYes:`Hey Hemanth! Plans worked out, I’m coming after all! 🎉 ${n>1?`We’re a ${party}. `:''}See you there!`,
+    nowMaybe:`Hey Hemanth, it’s ${name}. Things got a little uncertain 🤞 I’ve switched to tentative and will confirm soon!`,
+    nowNo:`Hey Hemanth, it’s ${name}. Really sorry, my plans changed and I can’t make it anymore 😔 Sending you both lots of love!`,
+    longer:`Hey Hemanth! Good news, I’m staying longer 🎊 Now ${dates}. More time to celebrate!`,
+    shorter:`Hey Hemanth, quick heads-up: I had to shorten my trip, now ${dates}. Still can’t wait to see you!`,
+    moved:`Hey Hemanth! My travel dates moved a little, now ${dates}. All updated on the RSVP 👍`,
+    more:`Hey Hemanth! Our gang just got bigger 😄 We’re now a ${party}. Hope that’s okay!`,
+    fewer:`Hey Hemanth, small change: we’re now a ${party}. Still super excited!`,
+    moreEvents:`Hey Hemanth! I’m joining more of the fun ✨ See you at ${evs}!`,
+    fewerEvents:`Hey Hemanth, heads-up: I’ll miss a couple of events, but I’ll be there for ${evs}!`,
+    stay:`Hey Hemanth! Turns out we’ll need a place to stay 🛏️ I’ve updated the RSVP.`,
+    noStay:`Hey Hemanth! We’ve sorted our own stay, so no room needed for us 😊`,
+    edit:`Hey Hemanth! Just tweaked a few details on my RSVP. See you soon! 🎉`};
+  return T[k]||T[r.status]||T.edit}
 function showDone(r,justSent){rs.last=r;rs.mode='view';const done=$('#rsvp-done'),st=r.status,going=st==='yes'||st==='maybe';
   const title={yes:`See you there, ${r.firstName}!`,maybe:`Thank you, ${r.firstName}`,no:`We’ll miss you, ${r.firstName}`,withdrawn:'Your RSVP is withdrawn'}[st];
   const lead={yes:'We can’t wait to celebrate with you.',maybe:'Please confirm when you can. You can update this any time.',no:'Thank you for letting us know. Your blessings mean the world to us.',withdrawn:'Changed your mind? You can RSVP again below.'}[st];
   const ai=dIdx(r.arrival),di=dIdx(r.departure),party=1+(r.plusOnes||[]).length+(+r.kids||0);
   const mine=going?WEDDING.events.filter(e=>(r.events||[]).includes(e.id)):[];
   const rows=[['RSVP',{yes:'Attending',maybe:'Tentative',no:'Can’t come',withdrawn:'Withdrawn'}[st]]].concat(going?[['Dates',ai>=0&&di>=0?`${dayText(ai)} → ${dayText(di)}`:''],['Party',`${party} ${party>1?'people':'person'}`],['Stay',r.accommodation?'Needed':'Not needed']]:[]);
-  const wa=`https://wa.me/${WEDDING.contact.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`Namaste Hemanth! ${r.firstName} ${r.lastName} here. I just sent my RSVP: ${rows[0][1]}${going?` (${party} ${party>1?'people':'person'})`:''}.`)}`;
+  const wa=`https://wa.me/${WEDDING.contact.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(heyHemanth(rs.sit||st,r,party,ai>=0&&di>=0?`${dayText(ai)} → ${dayText(di)}`:'',mine))}`;rs.sit='';
   const cal=mine.length?`<div class="cal-box"><span class="lbl">Add ${mine.length>1?`your ${mine.length} events`:'it'} to your calendar</span><div class="cal-btns"><button class="btn solid" type="button" data-act="apple">${calSvg}Apple</button><button class="btn" type="button" data-act="google">${calSvg}Google</button></div><div class="collapse" id="g-wrap"><div><ul class="g-list">${mine.length>1?`<li class="g-all"><span>All ${mine.length} events at once<small>One tap adds a “Hemanth & Alekya’s Wedding” calendar</small></span><a href="${esc(gcalAll(mine))}" target="_blank" rel="noopener noreferrer" data-g>Add all</a></li>`:''}${mine.map(e=>`<li><span>${esc(e.title)}<small>${weekday(e).slice(0,3)} ${e.d} ${MON[e.m-1].slice(0,3)} · ${time12(e.t)}</small></span><a href="${esc(gcal(e))}" target="_blank" rel="noopener noreferrer" data-g>Add</a></li>`).join('')}</ul></div></div></div>`:'';
   done.className='rsvp-card done '+st;
   done.innerHTML=`<div class="tick" aria-hidden="true">${{yes:'✓',maybe:'<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M6.5 3h11M6.5 21h11M8 3c0 5 3.6 6.2 3.6 9S8 16 8 21M16 3c0 5-3.6 6.2-3.6 9S16 16 16 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.6 6.5h4.8L12 10z M8.9 20h6.2L12 16.6z" fill="currentColor"/></svg>',no:'♡',withdrawn:'↺'}[st]}</div><h3>${esc(title)}</h3><p>${esc(lead)}</p><dl>${rows.filter(x=>x[1]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${cal}<div class="acts"><button class="btn solid" type="button" data-act="edit">${st==='withdrawn'?'RSVP again':'Change in plans? Update'}</button><a class="btn wa" style="background:linear-gradient(#1f8f4e,#13703a);color:#fff;border-color:#0f5c30" href="${esc(wa)}" target="_blank" rel="noopener noreferrer">${waSvg}Tell Hemanth on WhatsApp</a>${st!=='withdrawn'?'<button class="btn ghost" type="button" data-act="withdraw">Withdraw my RSVP</button>':''}</div>`;
@@ -458,7 +479,7 @@ $('#rsvp-done').addEventListener('click',async e=>{const g=e.target.closest('[da
   if(b.dataset.act==='edit')enterEdit(r);
   if(b.dataset.act==='apple')location.href=calFile(WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id)));
   if(b.dataset.act==='google'){const mine=WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id));if(mine.length===1)window.open(gcal(mine[0]),'_blank','noopener');else{const w=$('#g-wrap');setCollapse(w,!w.classList.contains('open'))}}
-  if(b.dataset.act==='withdraw'&&await ask('You can RSVP again any time if your plans change.',{title:'Withdraw your RSVP?',ok:'Yes, withdraw',cancel:'Keep my RSVP',notes:MSGS.withdraw})){const note=$('#ux-ask-note').value.trim(),bb=busyBtn(b,['Withdrawing…','Updating the guest list…','Almost done…']);try{const x=await api({action:'withdraw',id:rs.saved.id,secret:rs.saved.secret,message:note});if(x.ok){await bb.ok('Withdrawn');showDone(x.rsvp);return}tell('Could not withdraw. Please try again.')}catch(err){tell(errText(err))}bb.end()}});
+  if(b.dataset.act==='withdraw'&&await ask('You can RSVP again any time if your plans change.',{title:'Withdraw your RSVP?',ok:'Yes, withdraw',cancel:'Keep my RSVP',notes:MSGS.withdraw})){const note=$('#ux-ask-note').value.trim(),bb=busyBtn(b,['Withdrawing…','Updating the guest list…','Almost done…']);try{const x=await api({action:'withdraw',id:rs.saved.id,secret:rs.saved.secret,message:note});if(x.ok){await bb.ok('Withdrawn');rs.sit='withdrawn';showDone(x.rsvp);return}tell('Could not withdraw. Please try again.')}catch(err){tell(errText(err))}bb.end()}});
 const findForm=$('#find-form');
 function openFind(){const f=findForm;f.cc.value=F.cc.value;f.ccx.value=F.ccx.value;ccSync(f);f.phone.value=F.phone.value;$('#find-error').textContent='';$('#find-help').hidden=true;$('#find').showModal()}
 $('#find-top-open').onclick=openFind;
@@ -471,7 +492,7 @@ findForm.addEventListener('submit',async e=>{e.preventDefault();const f=findForm
   catch(err){er.textContent=errText(err);shake(f.querySelector('.phone'))}finally{f.classList.remove('sending');bb.end()}});
 // Ready-to-send WhatsApp notes to Hemanth (his Indian number has WhatsApp), most likely one first.
 function findHelp(f){const p=phoneOf(f),digits=String(p.number).replace(/\D/g,''),name=nameCase(F.fullName.value.replace(/\s+/g,' ').trim());
-  const me=`Namaste Hemanth! ${name?`This is ${name}. `:''}I couldn’t find my RSVP on the website${digits?` with my number ${p.cc?p.cc+' ':''}${digits}`:''}.`;
+  const me=`Hey Hemanth! ${name?`It’s ${name}. `:''}I couldn’t find my RSVP on the website${digits?` with my number ${p.cc?p.cc+' ':''}${digits}`:''}.`;
   const opts=[['no','I can’t make it',`${me} Sadly I won’t be able to make it to the wedding. Sending love and blessings to you and Alekya! 🙏`],['change','My plans changed',`${me} My plans have changed and I’d like to update my RSVP: `],['help','Please help me find it',`${me} I’m still coming! Could you please help me find or update it? 🙏`]];
   if(radioVal(form,'status')!=='no')opts.push(opts.shift());
   $('#find-wa').innerHTML=opts.map(([,l,t])=>`<a href="https://wa.me/${WEDDING.contact.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(t)}" target="_blank" rel="noopener noreferrer">${waSvg}<span>${esc(l)}</span></a>`).join('');
@@ -497,7 +518,7 @@ function tickToday(){const bar=$('#today-bar'),now=NOW(),day=ctDate(now),evDays=
   body.classList.toggle('diya-night',evDays.has(day)&&ctHour(now)>=18);
   const list=WEDDING.events.filter(e=>ctDate(startOf(e))===day&&+endOf(e)>now);
   if(!list.length||todayShut||!body.classList.contains('opened')){bar.hidden=true;return}
-  const e=list[0],live=now>=+startOf(e),wa=`https://wa.me/${WEDDING.contact.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`Namaste Hemanth! I’m on my way to the ${e.title}.`)}`;
+  const e=list[0],live=now>=+startOf(e),wa=`https://wa.me/${WEDDING.contact.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`Hey Hemanth! On my way to the ${e.title} 🚗 See you soon!`)}`;
   bar.style.setProperty('--accent',e.accent);
   bar.innerHTML=`<span class="tb-ic" aria-hidden="true"><svg viewBox="0 0 48 48">${ICONS[e.icon]||''}</svg></span><span class="tb-t"><small>${live?'Happening now':'Today'}${list.length>1?` · ${list.length-1} more later`:''}</small><b>${esc(e.title)}</b><span>${time12(e.t)} · ${esc(WEDDING.venue.short||WEDDING.venue.name)}</span></span><a class="tb-b" href="${esc(mapHref(mapQuery(e)))}" target="_blank" rel="noopener noreferrer" aria-label="Directions">${mapSvg}</a><a class="tb-b wa" href="${esc(wa)}" target="_blank" rel="noopener noreferrer" aria-label="WhatsApp Hemanth">${waSvg}</a><button type="button" class="tb-x" aria-label="Hide">✕</button>`;
   if(bar.hidden){bar.hidden=false;bar.classList.remove('in');void bar.offsetWidth;bar.classList.add('in')}}
@@ -729,7 +750,7 @@ const xapi=async(kind,body={})=>{const r=await api(Object.assign({action:'adminE
 const digits10=p=>String(p||'').replace(/\D/g,'').slice(-10);
 const firstOf=n=>String(n||'').trim().split(/\s+/)[0]||'there';
 const waLink=(phone,text)=>`https://wa.me/${String(phone).replace(/\D/g,'')}?text=${encodeURIComponent(text)}`;
-const nudgeText=n=>`Namaste ${firstOf(n)}! 🙏 Hemanth & Alekya here. We’d love to celebrate with you (1 – 3 Dec, Celina TX). Could you let us know if you can make it? It takes a minute: https://is.gd/hemwedsalekya`;
+const nudgeText=n=>`Hi ${firstOf(n)}! Hemanth & Alekya here. We’d love to celebrate with you (1 – 3 Dec, Celina TX). Could you let us know if you can make it? It takes a minute: https://is.gd/hemwedsalekya`;
 const thanksText=n=>`Dear ${firstOf(n)}, thank you so much for celebrating with us and for all your blessings 🙏 It meant the world to us. Our wedding site: ${SITE}\n\nWith love, Hemanth & Alekya`;
 const going=x=>x.status==='yes'||x.status==='maybe',partyOf=x=>1+x.plusOnes.length+(+x.kids||0);
 function matchInvite(inv){const d=digits10(inv.phone),k=nameKey(inv.name);return admData.rsvps.find(x=>(d&&digits10(x.phone)===d)||nameKey(x.firstName+' '+x.lastName)===k)}
@@ -946,7 +967,8 @@ addEventListener('scroll',queue,{passive:true});addEventListener('resize',queue)
 
 /* ----- Three.js: animated temple art + falling marigolds, jasmine & gold dust ----- */
 let shower=null;
-try{
+// The 3D library arrives just after the page is ready (hx:three); a tap that came first still gets its petal shower.
+function startThree(){try{
   const T=THREE,art=$('#art');
   // Hero: original shader for swaying garlands, bells, light rays and glowing lamps
   const canvas=$('#scene'),renderer=new T.WebGLRenderer({canvas,alpha:true,antialias:false,powerPreference:'low-power'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));renderer.outputColorSpace=T.SRGBColorSpace;
@@ -1004,5 +1026,6 @@ try{
     if(fx&&(dt||!fx.drawn)){fx.step(dt,clock);fx.drawn=true}}
   requestAnimationFrame(frame);
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();ready=false;hero.classList.remove('webgl')});
-}catch(err){console.warn('Invitation artwork remains available without WebGL.',err&&err.message)}
+}catch(err){console.warn('Invitation artwork remains available without WebGL.',err&&err.message)}}
+if(window.THREE)startThree();else addEventListener('hx:three',()=>{startThree();if(opened&&shower)shower()},{once:true});
 })();

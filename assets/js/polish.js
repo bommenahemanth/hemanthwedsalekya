@@ -146,7 +146,7 @@
    }
    $$('#track .slide').forEach(slide=>{
      const im=slide.querySelector('img');if(!im)return;
-     const src=im.getAttribute('src')||im.dataset.src||'',thumb=/^photos\/\d+\.jpg$/.test(src)?src.replace('photos/','photos/thumbs/'):'';
+     const src=im.getAttribute('src')||im.dataset.src||'',thumb=/^photos\/\d+\.(jpg|webp)$/.test(src)?src.replace('photos/','photos/thumbs/').replace(/\.webp$/,'.jpg'):'';
      if(thumb){slide.style.backgroundImage=`url("${thumb}")`;slide.classList.add('ux-thumb')}
      if(im.complete&&im.naturalWidth)return;
      const ready=()=>im.classList.remove('ux-wait');

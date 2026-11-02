@@ -146,11 +146,4 @@
    addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(open)},{passive:true});open();
  }
 
- /* 20: little moving bars on the music button while it plays */
- const music=$('#music'),bgm=$('#bgm');
- if(music&&bgm){
-   const bars=document.createElement('span');bars.className='dl-bars';bars.setAttribute('aria-hidden','true');bars.innerHTML='<i></i><i></i><i></i>';music.append(bars);
-   const sync=()=>music.classList.toggle('dl-playing',!bgm.paused);
-   ['play','playing','pause','ended'].forEach(ev=>bgm.addEventListener(ev,sync));sync();
- }
 })();
