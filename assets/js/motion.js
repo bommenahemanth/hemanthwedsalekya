@@ -15,10 +15,10 @@
    if(div&&i<2){const img=new Image();img.src=art[['kalash','lamp'][i]];img.alt='';img.className='ritual-emblem';div.append(img)}
  });
  $$('.tl-item').forEach((li,i)=>{
-   const key=['kalash','cocktails','haldi','thali','teluguMangalyam'][i];
+   const key=['cocktails','haldi','kalash'][i];
    const im=new Image();im.src=art[key];im.alt='';im.className='ritual-icon';
    li.querySelector('.tl-node').append(im);
-   const sceneKey=['coconut','cocktails','haldi','decoratedPots','fire'][i],scene=document.createElement('figure'),picture=new Image();
+   const sceneKey=['cocktails','haldi','coconut'][i],scene=document.createElement('figure'),picture=new Image();
    scene.className='event-illustration event-background'+(sceneKey==='fire'?' holy-fire':'');scene.setAttribute('aria-hidden','true');
    picture.className='event-art';picture.src=art[sceneKey];picture.alt='';picture.decoding='async';
    const readability=document.createElement('div');readability.className='event-readability';readability.setAttribute('aria-hidden','true');
@@ -168,7 +168,7 @@ function initWeddingFlowers({art,root,body,reduced}){
    height=Math.max(1,box.height||innerHeight||root.clientHeight||844);
    dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
    if(ctx)ctx.setTransform(dpr,0,0,dpr,0,0);
-   const count=width<350?14:width<390?18:20;
+   const count=width<350?10:width<390?13:14;
    if(sprites.length!==count){sprites.length=0;for(let i=0;i<count;i++){const q=(i+.5)/count,key=specs.find(([,limit])=>q<limit)[0],sprite={key};place(sprite,true);sprites.push(sprite)}}
    if(quiet&&ctx)ctx.clearRect(0,0,width,height);
  }
@@ -246,8 +246,8 @@ initWeddingFlowers({art,root,body,reduced});
   });
   const groups=[['fieldset[data-err="days"]>legend','dates'],['#going>div>fieldset:nth-of-type(2)>legend','guests'],['#going>div>fieldset:nth-of-type(3)>legend','stay']];
   groups.forEach(([selector,key])=>{const legend=form.querySelector(selector);if(legend&&!legend.querySelector('.rsvp-ui-glyph'))legend.prepend(glyph(key))});
-  const eventById={pelli:'coconut',sangeet:'cocktails',haldi:'haldi',pratham:'decoratedPots',muhurtham:'fire'};
-  const eventByText=[[/pelli koduku|pelli kuthuru/i,'coconut'],[/sangeet|cocktail/i,'cocktails'],[/haldi/i,'haldi'],[/pratham|prathanam/i,'decoratedPots'],[/marriage|muhurtham/i,'fire']];
+  const eventById={sangeet:'cocktails',haldi:'haldi',muhurtham:'coconut'};
+  const eventByText=[[/sangeet|cocktail/i,'cocktails'],[/haldi/i,'haldi'],[/marriage|muhurtham/i,'coconut']];
   const list=form.querySelector('#ev-list');
   function decorateEvents(){
     if(!list)return;

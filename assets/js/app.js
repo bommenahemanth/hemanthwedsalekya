@@ -21,21 +21,19 @@ const WEDDING={
   // Slideshow photos after the first (inline) one; loaded only as they come up.
   photos:['photos/02.jpg','photos/03.jpg','photos/04.jpg','photos/05.jpg','photos/06.jpg'],
   // Set to true (and PHOTOS_OPEN=yes on the backend) to let guests share photos.
-  photos:false,
+  photoDrop:false,
   music:{src:'music/pipa-says.m4a',credit:'Music: “What the Pipa Says” (琵琶語) by Lin Hai, © 2003 Wind Music International',link:'https://open.spotify.com/track/0XeklzlYWRCqgplYDVitZl'},
   events:[
-    {id:'pelli',d:29,m:11,t:'18:00',hrs:3,icon:'kalash',accent:'#d9480f',title:'Pelli Koduku & Pelli Kuthuru',te:'పెళ్లికొడుకు · పెళ్లికూతురు',note:'Mangala snanam and blessings as the groom and bride are adorned for the wedding.'},
-    {id:'sangeet',d:1,m:12,t:'18:00',hrs:4,icon:'music',accent:'#8e2453',title:'Sangeet / Cocktail Party',te:'సంగీత్',note:'An evening of music, dance and cheers. Come ready to celebrate!'},
-    {id:'haldi',d:2,m:12,t:'10:00',hrs:3,icon:'haldi',accent:'#e0a100',title:'Haldi',te:'హల్దీ · పసుపు',note:'Turmeric, laughter and a golden glow. Wear something yellow!'},
-    {id:'pratham',d:2,m:12,t:'18:00',hrs:3,icon:'thali',accent:'#a3162b',title:'Pratham (Prathanam)',te:'ప్రధానం',note:'Our families come together to exchange blessings and gifts.'},
-    {id:'muhurtham',d:3,m:12,t:'09:47',hrs:3,icon:'mangalsutra',accent:'#c9a24a',main:true,title:'Marriage (Muhurtham)',te:'శుభ ముహూర్తం',note:'Jeelakarra–Bellam at the auspicious hour, as two families become one.'}
+    {id:'sangeet',short:'Sangeet',art:'cocktails',d:1,m:12,t:'18:00',hrs:4,icon:'music',accent:'#8e2453',title:'Sangeet / Cocktail Party',te:'సంగీత్',note:'An evening of music, dance and cheers. Come ready to celebrate!'},
+    {id:'haldi',short:'Haldi',art:'haldi',d:2,m:12,t:'10:00',hrs:3,icon:'haldi',accent:'#e0a100',title:'Haldi',te:'హల్దీ · పసుపు',note:'Turmeric, laughter and a golden glow. Wear something yellow!'},
+    {id:'muhurtham',short:'Wedding',art:'coconut',d:3,m:12,t:'09:47',hrs:3,icon:'mangalsutra',accent:'#c9a24a',main:true,title:'Marriage (Muhurtham)',te:'శుభ ముహూర్తం',note:'Jeelakarra–Bellam at the auspicious hour, as two families become one.'}
   ]
 };
 /* ===================================== */
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],root=document.documentElement,body=document.body,reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
 window.HX_SCHEDULE=Object.freeze({year:WEDDING.year,tz:WEDDING.tz,events:WEDDING.events.map(({id,d,m,t,hrs})=>({id,d,m,t,hrs}))});
 // Themed replacements for the browser's confirm()/alert() boxes; both resolve when the guest answers.
-function ask(msg,{title='Are you sure?',ok='OK',cancel='Cancel',info=false}={}){const d=$('#ux-ask');if(!d||!d.showModal)return Promise.resolve(info||window.confirm(msg));$('#ux-ask-title').textContent=title;$('#ux-ask-msg').textContent=msg;$('#ux-ask-ok').textContent=ok;$('#ux-ask-cancel').textContent=cancel;$('#ux-ask-cancel').hidden=info;d.classList.toggle('info',info);d.returnValue='';d.showModal();$('#ux-ask-ok').focus();return new Promise(res=>d.addEventListener('close',()=>res(d.returnValue==='ok'),{once:true}))}
+function ask(msg,{title='Are you sure?',ok='OK',cancel='Cancel',info=false,notes=null}={}){const d=$('#ux-ask');if(!d||!d.showModal)return Promise.resolve(info||window.confirm(msg));$('#ux-ask-title').textContent=title;$('#ux-ask-msg').textContent=msg;$('#ux-ask-notes').hidden=!notes;$('#ux-ask-note').value='';$('#ux-ask-chips').innerHTML=(notes||[]).map(t=>`<button type="button">${esc(t)}</button>`).join('');$('#ux-ask-ok').textContent=ok;$('#ux-ask-cancel').textContent=cancel;$('#ux-ask-cancel').hidden=info;d.classList.toggle('info',info);d.returnValue='';d.showModal();$('#ux-ask-ok').focus();return new Promise(res=>d.addEventListener('close',()=>res(d.returnValue==='ok'),{once:true}))}
 function tell(msg,title='Something went wrong'){return ask(msg,{title,ok:'OK',info:true})}
 const pad=n=>String(n).padStart(2,'0'),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const MON=['January','February','March','April','May','June','July','August','September','October','November','December'],DAY=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -189,7 +187,7 @@ const svgI=d=>`<svg viewBox="0 0 20 20" aria-hidden="true">${d}</svg>`;
 const waSvg=svgI('<path d="M4 16.5 5 13a6.6 6.6 0 1 1 2.4 2.4Z"/><path d="M8 7.5c0 2.4 2 4.5 4.5 4.5l.8-1.2-1.6-.8-.7.6c-.8-.3-1.5-1-1.8-1.8l.6-.7-.8-1.6Z"/>'),phoneSvg=svgI('<path d="M5 3h3l1.4 3.6-1.8 1.2a9 9 0 0 0 4.6 4.6l1.2-1.8L17 12v3a2 2 0 0 1-2 2A12 12 0 0 1 3 5a2 2 0 0 1 2-2Z"/>'),mailSvg=svgI('<rect x="2.5" y="4.5" width="15" height="11" rx="2"/><path d="m3 6 7 5 7-5"/>');
 {const C=WEDDING.contacts,e=encodeURIComponent,apple=/iP(hone|ad|od)|Macintosh/.test(navigator.userAgent);
  const imsgSvg=svgI('<path d="M10 3.5c4.4 0 8 2.7 8 6s-3.6 6-8 6c-.9 0-1.8-.1-2.6-.3L4 16.5l1-3C3.2 12.4 2 11 2 9.5c0-3.3 3.6-6 8-6Z"/>');
- const who=()=>{const f=$('#rsvp-form'),n=[f.firstName.value,f.lastName.value].map(s=>s.trim()).filter(Boolean).join(' ');return n||(rs.last?`${rs.last.firstName} ${rs.last.lastName}`:'')};
+ const who=()=>{const n=$('#rsvp-form').elements.fullName.value.replace(/\s+/g,' ').trim();return n||(rs.last?`${rs.last.firstName} ${rs.last.lastName}`:'')};
  const tone=p=>`--c1:${p.c1};--c2:${p.c2}`;
  $('#people').innerHTML=C.map((p,i)=>`<button type="button" class="person" style="${tone(p)}" data-i="${i}" aria-haspopup="dialog"><span class="medal" aria-hidden="true">${esc(p.name[0])}</span><b>${esc(p.name)}</b><small>${esc(p.role)}</small><span class="te" lang="te">${esc(p.te)}</span></button>`).join('');
  function openPerson(p){const n=who(),hi=`Namaste ${p.name}! ${n?`This is ${n}. `:''}I have a question about the wedding: `;
@@ -291,38 +289,51 @@ document.addEventListener('click',e=>{if(e.target.closest('#rsvp-submit'))setTim
 try{localStorage.removeItem('hx-vid')}catch{}
 
 /* ----- RSVP form ----- */
-const RDAYS=(()=>{const out=[],s=Date.UTC(WEDDING.year,first.m-1,first.d),end=Date.UTC(WEDDING.year,muhurtham.m-1,muhurtham.d)+864e5;for(let t=s;t<=end;t+=864e5){const d=new Date(t);out.push({key:d.toISOString().slice(0,10),day:DAY[d.getUTCDay()].slice(0,3),label:`${d.getUTCDate()} ${MON[d.getUTCMonth()].slice(0,3)}`})}out[out.length-1].morning=true;return out})();
+// 1 Dec to the checkout morning; the indices match the backend's DAYS.
+const RDAYS=(()=>{const out=[],s=Date.UTC(WEDDING.year,WEDDING.events[0].m-1,WEDDING.events[0].d),end=Date.UTC(WEDDING.year,muhurtham.m-1,muhurtham.d)+864e5;for(let t=s;t<=end;t+=864e5){const d=new Date(t);out.push({key:d.toISOString().slice(0,10),day:DAY[d.getUTCDay()].slice(0,3),label:`${d.getUTCDate()} ${MON[d.getUTCMonth()].slice(0,3)}`})}out[out.length-1].morning=true;return out})();
+// Older RSVPs may hold 29/30 Nov; treat those as 1 Dec.
+const dIdx=k=>k&&k<RDAYS[0].key?0:RDAYS.findIndex(d=>d.key===k);
 const dayText=i=>`${RDAYS[i].day} ${RDAYS[i].label}${RDAYS[i].morning?' (morning)':''}`;
+// The slider stops at the wedding day; its last stop means staying through it and checking out the next morning.
+const FIRSTSTOP=RDAYS.findIndex(d=>d.key===`${WEDDING.year}-${pad(WEDDING.events[0].m)}-${pad(WEDDING.events[0].d)}`),LASTSTOP=RDAYS.length-2,dA=()=>+F.arrival.value,dB=()=>+F.departure.value===LASTSTOP?LASTSTOP+1:+F.departure.value;
 const evDay=e=>RDAYS.findIndex(d=>d.key===`${WEDDING.year}-${pad(e.m)}-${pad(e.d)}`);
 // Nothing is remembered between visits: a returning guest finds their RSVP by WhatsApp number.
 const form=$('#rsvp-form'),F=form.elements,rs={plus:[],kids:0,mode:'new',saved:null,last:null};
 const radioVal=(f,n)=>{const c=f.querySelector(`input[name="${n}"]:checked`);return c?c.value:''};
 const setRadio=(f,n,v)=>f.querySelectorAll(`input[name="${n}"]`).forEach(i=>{i.checked=i.value===v;i.dataset.on=i.checked?'1':''});
 document.addEventListener('click',e=>{const i=e.target.closest('[data-clearable] input[type=radio]');if(!i)return;if(i.dataset.on==='1'){i.checked=false;i.dataset.on='';i.dispatchEvent(new Event('change',{bubbles:true}))}else{i.closest('form').querySelectorAll(`input[name="${i.name}"]`).forEach(x=>x.dataset.on='');i.dataset.on='1'}});
-$('#ticks').innerHTML=RDAYS.map((d,i)=>`<span style="left:${i*20}%"><b>${esc(d.label.split(' ')[0])}</b>${esc(d.label.split(' ')[1])}${d.morning?'<br>am':''}</span>`).join('');
+$('#ticks').innerHTML=RDAYS.slice(FIRSTSTOP,LASTSTOP+1).map((d,i)=>`<span style="left:${i*100/(LASTSTOP-FIRSTSTOP)}%"><b>${esc(d.label.split(' ')[0])}</b>${esc(d.label.split(' ')[1])}</span>`).join('');
 const inRange=(a,b)=>WEDDING.events.filter(e=>{const i=evDay(e);return i>=a&&i<=b});
+// Events inside the chosen dates that the guest has skipped (e.g. only coming for the wedding).
+const skip=new Set(),chosen=()=>inRange(dA(),dB()).filter(e=>!skip.has(e.id));
+$('#ev-pick').innerHTML=WEDDING.events.map(e=>`<button type="button" data-ev="${e.id}"><img src="${(window.HX_CEREMONY_ART||{})[e.art]||''}" alt=""><span>${esc(e.short)}</span><small>${time12(e.t).replace(':00','')}</small><i aria-hidden="true"></i></button>`).join('');
+$('#ev-pick').addEventListener('click',ev=>{const b=ev.target.closest('[data-ev]');if(!b)return;
+  const ids=new Set(chosen().map(e=>e.id));
+  if(ids.has(b.dataset.ev)){if(ids.size===1){shake(b);return}ids.delete(b.dataset.ev)}else ids.add(b.dataset.ev);
+  const days=WEDDING.events.filter(e=>ids.has(e.id)).map(evDay),a=Math.min(...days),last=Math.max(...days);
+  F.arrival.value=a;F.departure.value=a===last&&last<LASTSTOP?last+1:last;
+  skip.clear();inRange(a,dB()).forEach(e=>{if(!ids.has(e.id))skip.add(e.id)});syncRange()});
 function syncRange(){
   let a=+F.arrival.value,b=+F.departure.value;
-  if(a>=b){if(document.activeElement===F.departure)b=Math.min(5,a+1),a=b-1;else a=Math.max(0,b-1)}
-  F.arrival.value=a;F.departure.value=b;$('#range').style.setProperty('--a',a);$('#range').style.setProperty('--b',b);F.arrival.style.zIndex=a>=4?3:1;
-  const nights=b-a;$('#range-out').textContent=`${dayText(a)} → ${dayText(b)} · ${nights} night${nights>1?'s':''}`;
-  $('#day-tips').textContent=dayTips(a,b);
-  const list=$('#ev-list'),html=inRange(a,b).map(e=>`<li><b>${weekday(e).slice(0,3)} ${e.d} ${MON[e.m-1].slice(0,3)}</b><svg class="ev-ic" viewBox="0 0 48 48" aria-hidden="true">${ICONS[e.icon]||''}</svg><div>${esc(e.title)} <span>· ${time12(e.t)}</span></div></li>`).join('');
-  if(list.dataset.k!==`${a}-${b}`){list.dataset.k=`${a}-${b}`;list.innerHTML=html}
+  // Arriving on the wedding day itself is allowed; otherwise leaving is at least a day after arriving.
+  if(a>b||(a===b&&b<LASTSTOP)){if(document.activeElement===F.departure)b=Math.min(LASTSTOP,a+1),a=Math.min(a,b-(b<LASTSTOP?1:0));else a=Math.max(FIRSTSTOP,b===LASTSTOP?b:b-1)}
+  a=Math.max(FIRSTSTOP,a);b=Math.max(FIRSTSTOP+1,b);
+  F.arrival.value=a;F.departure.value=b;const span=LASTSTOP-FIRSTSTOP;$('#range').style.setProperty('--pa',(a-FIRSTSTOP)/span*100+'%');$('#range').style.setProperty('--pb',(LASTSTOP-b)/span*100+'%');F.arrival.style.zIndex=a>=LASTSTOP-1?3:1;
+  const nights=dB()-a;$('#range-out').textContent=a===b?`${dayText(a)} · the wedding day`:`${dayText(a)} → ${dayText(b)} · ${nights} night${nights>1?'s':''}`;
+  $('#day-tips').textContent=dayTips(a,dB());
+  const sel=chosen();$$('#ev-pick [data-ev]').forEach(x=>x.setAttribute('aria-pressed',sel.some(e=>e.id===x.dataset.ev)));
   partyText()}
 function dayTips(a,b){
-  if(a===4)return 'The wedding is Thursday 9:47 AM, so please arrive by Wednesday.';
-  if(a>=1)return 'Please reach Dallas by Monday 4 PM if you can.';
-  if(b<4)return 'The wedding is Thu 3 Dec at 9:47 AM.';
-  if(b===5)return 'Checkout Fri, 4 Dec at 10 AM from the Airbnb.';
-  return ''}
+  const t=[];
+  if(a===FIRSTSTOP)t.push('Flying in on 1 Dec? Try to reach Dallas by 3 PM.');
+  if(b<LASTSTOP)t.push('The wedding is Thu 3 Dec at 9:47 AM.');
+  else if(a===LASTSTOP)t.push('The Muhurtham is at 9:47 AM, so please come by 8 AM.');
+  else if(b===LASTSTOP+1)t.push('Checkout Fri, 4 Dec at 10 AM from the Airbnb.');
+  return t.join('\n')}
 function setCollapse(el,open){el.classList.toggle('open',open);el.firstElementChild.inert=!open}
-F.arrival.addEventListener('input',()=>syncRange());F.departure.addEventListener('input',()=>syncRange());
-function poRows(added){$('#po-rows').innerHTML=rs.plus.map((p,i)=>`<div class="po${i===added?' new':''}"><input data-po="${i}" maxlength="50" placeholder="${i?`+1 #${i+1} name`:'+1 name, e.g. spouse'} (optional)" aria-label="+1 number ${i+1} name" value="${esc(p.name)}"><div class="chips" data-clearable>${['male','female'].map(g=>`<label class="chip"><input type="radio" name="po-${i}" value="${g}"${p.gender===g?' checked data-on="1"':''}><span>${g==='male'?'M':'F'}</span></label>`).join('')}</div></div>`).join('');setCollapse($('#po-note'),rs.plus.length>0)}
-$('#po-rows').addEventListener('input',e=>{const i=e.target.dataset.po;if(i!==undefined)rs.plus[+i].name=e.target.value});
-$('#po-rows').addEventListener('change',e=>{const m=/^po-(\d+)$/.exec(e.target.name||'');if(m)rs.plus[+m[1]].gender=radioVal($('#po-rows'),e.target.name)});
+F.arrival.addEventListener('input',()=>{skip.clear();syncRange()});F.departure.addEventListener('input',()=>{skip.clear();syncRange()});
 form.querySelectorAll('[data-stepper]').forEach(s=>s.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const d=+b.dataset.d;
-  if(s.dataset.stepper==='plus'){const n=Math.max(0,Math.min(10,rs.plus.length+d));if(n===rs.plus.length)return;while(rs.plus.length<n)rs.plus.push({name:'',gender:''});rs.plus.length=n;poRows(d>0?n-1:-1);if(d>0)setTimeout(()=>{const i=$(`[data-po="${n-1}"]`);if(i)i.focus({preventScroll:true})},60)}else{const k=Math.max(0,Math.min(10,rs.kids+d));if(k===rs.kids)return;rs.kids=k}
+  if(s.dataset.stepper==='plus'){const n=Math.max(0,Math.min(10,rs.plus.length+d));if(n===rs.plus.length)return;while(rs.plus.length<n)rs.plus.push({name:'',gender:''});rs.plus.length=n}else{const k=Math.max(0,Math.min(10,rs.kids+d));if(k===rs.kids)return;rs.kids=k}
   steppers();const o=s.querySelector('output');o.classList.remove('bump');void o.offsetWidth;o.classList.add('bump')}));
 function steppers(){$('#plus-out').textContent=rs.plus.length;$('#kids-out').textContent=rs.kids;form.querySelectorAll('[data-stepper]').forEach(s=>{const v=s.dataset.stepper==='plus'?rs.plus.length:rs.kids;s.classList.toggle('has',v>0);s.querySelector('[data-d="-1"]').disabled=v<=0;s.querySelector('[data-d="1"]').disabled=v>=10});partyText()}
 // Quick notes the guest can tap, three per situation: their reply, or what they just changed.
@@ -340,24 +351,28 @@ const MSGS={
   fewer:['Fewer of us can make it now, sorry!','Some of my family can’t come anymore.','Smaller party now, but I’ll be there!'],
   stay:['We’ll need a place to stay, thank you!','Would love to stay at the venue if there’s room.','Please count us in for the stay.'],
   noStay:['We’ve arranged our own stay, thank you!','No room needed for us anymore.','Staying with family nearby, thank you!'],
-  edit:['Small change in plans, all updated now.','My dates changed. See you soon!','Will confirm soon.']
+  moreEvents:['Adding more events, can’t wait to join!','I’ll be at more of the celebrations now!','Plans opened up, see you at more events!'],
+  fewerEvents:['Sorry, I’ll miss a few events, but see you at the rest!','Plans changed a bit, I can only make some of the events.','Will miss part of it, but can’t wait to see you!'],
+  withdraw:['Sorry, last-minute change of plans. Sending you both love and blessings!','Something came up and I can’t make it. Wishing you a beautiful wedding!','So sorry to miss it. Congratulations, will celebrate with you soon!'],
+  edit:['Small change in plans, all updated now.','Just updating my details, see you soon!','Updated my RSVP, can’t wait!']
 };
 function msgSituation(){const st=radioVal(form,'status'),o=rs.last;
   if(rs.mode!=='edit'||!o)return MSGS[st]?st:'';
   if(st&&st!==o.status)return st==='no'?'nowNo':st==='maybe'?'nowMaybe':'nowYes';
   if(st==='no')return 'no';
-  const oa=RDAYS.findIndex(d=>d.key===o.arrival),od=RDAYS.findIndex(d=>d.key===o.departure),a=+F.arrival.value,b=+F.departure.value;
+  const oa=dIdx(o.arrival),od=dIdx(o.departure),a=dA(),b=dB();
   if(oa>=0&&od>=0&&(a!==oa||b!==od))return b-a>od-oa?'longer':b-a<od-oa?'shorter':'moved';
+  const oe=o.events||[],ne=chosen().map(e=>e.id);if(oe.length&&oe.slice().sort().join()!==ne.slice().sort().join())return ne.length>=oe.length?'moreEvents':'fewerEvents';
   const was=1+(o.plusOnes||[]).length+(+o.kids||0),now=1+rs.plus.length+rs.kids;if(now!==was)return now>was?'more':'fewer';
   if(!!o.accommodation!==F.accommodation.checked)return F.accommodation.checked?'stay':'noStay';
   return 'edit'}
 function msgChips(){const k=msgSituation(),box=$('#msg-chips');setCollapse($('#msg-wrap'),!!k);if(box.dataset.k===k)return;box.dataset.k=k;
   box.innerHTML=(MSGS[k]||[]).map(t=>`<button type="button"${F.message.value===t?' class="on"':''}>${esc(t)}</button>`).join('')}
 const nameCase=s=>s.toLowerCase().replace(/(^|[\s\-'’.])(\p{L})/gu,(m,p,c)=>p+c.toUpperCase());
-form.addEventListener('focusout',e=>{const t=e.target;if(!t.matches('[name=firstName],[name=lastName],[data-po]'))return;
-  const v=nameCase(t.value.replace(/\s+/g,' ').trim());if(v!==t.value){t.value=v;if(t.dataset.po!==undefined)rs.plus[+t.dataset.po].name=v}});
+form.addEventListener('focusout',e=>{const t=e.target;if(!t.matches('[name=fullName]'))return;
+  const v=nameCase(t.value.replace(/\s+/g,' ').trim());if(v!==t.value)t.value=v});
 function partyText(){const adults=1+rs.plus.length,n=adults+rs.kids;$('#party').textContent=`Your party: ${n} ${n>1?'people':'person'} (${adults} adult${adults>1?'s':''}${rs.kids?`, ${rs.kids} kid${rs.kids>1?'s':''}`:''})`;
-  setCollapse($('#stay-wrap'),F.accommodation.checked);if(F.accommodation.checked){const s=Math.max(+F.arrival.value,1),nights=Math.max(0,+F.departure.value-s);$('#stay-hint').textContent=nights?`${nights} night${nights>1?'s':''} from ${dayText(s)} · ${n} ${n>1?'people':'person'}`:'No stay needed for these dates'}msgChips()}
+  setCollapse($('#stay-wrap'),F.accommodation.checked);if(F.accommodation.checked){const s=dA(),nights=Math.max(0,dB()-s);$('#stay-hint').textContent=nights?`${nights} night${nights>1?'s':''} from ${dayText(s)} · ${n} ${n>1?'people':'person'}`:'No stay needed for these dates'}msgChips()}
 function showGoing(){setCollapse($('#going'),radioVal(form,'status')!=='no');msgChips()}
 form.addEventListener('change',e=>{if(e.target.name==='accommodation')partyText();showGoing()});
 form.addEventListener('input',e=>{const f=e.target.closest('[data-err]');if(f){f.classList.remove('invalid');const er=f.querySelector('.err');if(er)er.textContent=''}});
@@ -376,19 +391,22 @@ function phoneError(p,keep){const digits=String(p.number).replace(/\D/g,'');if(k
   return digits.length<8||digits.length>15?'Add your country code, e.g. +44':''}
 function fieldError(k,m){const el=form.querySelector(`[data-err="${k}"]`);if(!el)return;el.classList.toggle('invalid',!!m);const er=el.querySelector('.err');if(er)er.textContent=m||''}
 F.phone.addEventListener('blur',()=>{if(F.phone.value)fieldError('phone',phoneError(phoneOf(F),false))});
-function collect(){const a=+F.arrival.value,b=+F.departure.value;return{firstName:F.firstName.value.trim(),lastName:F.lastName.value.trim(),gender:radioVal(form,'gender'),phone:phoneOf(F),status:radioVal(form,'status'),arrival:a,departure:b,events:inRange(a,b).map(e=>e.id),plusOnes:rs.plus.map(p=>({name:p.name.trim(),gender:p.gender})),kids:rs.kids,accommodation:F.accommodation.checked,message:F.message.value.trim()}}
+// One name box: the first word is the first name, the rest the last name.
+const splitName=v=>{const w=nameCase(String(v||'').replace(/\s+/g,' ').trim()).split(' ').filter(Boolean);return{first:w[0]||'',last:w.slice(1).join(' ')}};
+function collect(){const a=dA(),b=dB(),nm=splitName(F.fullName.value);return{firstName:nm.first,lastName:nm.last,gender:radioVal(form,'gender'),phone:phoneOf(F),status:radioVal(form,'status'),arrival:a,departure:b,events:chosen().map(e=>e.id),plusOnes:rs.plus.map(p=>({name:p.name.trim(),gender:p.gender})),kids:rs.kids,accommodation:F.accommodation.checked,message:F.message.value.trim()}}
 function fill(r){
-  F.firstName.value=r.firstName||'';F.lastName.value=r.lastName||'';F.message.value=r.message||'';
+  F.fullName.value=[r.firstName,r.lastName].filter(Boolean).join(' ');F.message.value=r.message||'';
   const ph=typeof r.phone==='string'?r.phone:'';rs.masked=ph.includes('•');
   if(rs.masked){const cc=ph.startsWith('+91')?'+91':ph.startsWith('+1')?'+1':'';setCc(F,cc);F.phone.value='';F.phone.placeholder=`Keep ${ph.replace(/^\+\d*\s*/,'')}, or type a new one`}
   else if(ph){const cc=ph.startsWith('+91')?'+91':ph.startsWith('+1')?'+1':'';setCc(F,cc);F.phone.value=cc?ph.slice(cc.length):ph}else if(r.phone&&r.phone.number!==undefined){setCc(F,r.phone.cc||'+1');F.phone.value=r.phone.number}
   ['gender','status'].forEach(n=>setRadio(form,n,r[n]||''));
-  const ai=typeof r.arrival==='number'?r.arrival:RDAYS.findIndex(d=>d.key===r.arrival),di=typeof r.departure==='number'?r.departure:RDAYS.findIndex(d=>d.key===r.departure);
-  F.arrival.value=ai>=0?ai:0;F.departure.value=di>0?di:5;syncRange();
-  rs.plus=(r.plusOnes||[]).map(p=>({name:p.name||'',gender:p.gender||''}));rs.kids=+r.kids||0;poRows();steppers();
+  const ai=typeof r.arrival==='number'?r.arrival:dIdx(r.arrival),di=typeof r.departure==='number'?r.departure:dIdx(r.departure);
+  F.arrival.value=ai>=0?Math.max(FIRSTSTOP,Math.min(ai,LASTSTOP)):FIRSTSTOP;F.departure.value=di>0?Math.max(FIRSTSTOP+1,Math.min(di,LASTSTOP)):LASTSTOP;
+  skip.clear();if(r.events&&r.events.length)inRange(dA(),dB()).forEach(e=>{if(!r.events.includes(e.id))skip.add(e.id)});syncRange();
+  rs.plus=(r.plusOnes||[]).map(p=>({name:p.name||'',gender:p.gender||''}));rs.kids=+r.kids||0;steppers();
   F.accommodation.checked=!!r.accommodation;showGoing();partyText()}
 
-function clientErrors(d){const e={};if(!d.firstName)e.firstName='Please enter your first name';if(!d.lastName)e.lastName='Please enter your last name';
+function clientErrors(d){const e={};if(!d.firstName)e.name='Please enter your name';
   const pe=phoneError(d.phone,rs.mode==='edit'&&rs.masked);if(pe)e.phone=pe;
   if(!d.status)e.status='Please choose one';return e}
 const MSG={firstName:'Please enter your first name',lastName:'Please enter your last name',phone:'Please enter a valid WhatsApp number',email:'That email doesn’t look right',status:'Please choose one',events:'Pick at least one event',days:'Please choose your dates',kids:'Please check the number of kids',plusOnes:'Up to 10 plus-ones'};
@@ -413,7 +431,7 @@ form.addEventListener('submit',async ev=>{ev.preventDefault();$('#form-error').t
       if(f.ok){rs.saved={id:f.id,secret:f.secret};r=await api({action:'update',id:f.id,secret:f.secret,rsvp:d})}
       else{$('#form-error').textContent='This WhatsApp number already has an RSVP under a different first name. Use “Find my RSVP” below, or message us.';return}}
     if(r.ok){if(r.id)rs.saved={id:r.id,secret:r.secret};await bb.ok(editing?'Updated':'Sent');showDone(r.rsvp,true);return}
-    if(r.error==='invalid'){showErrors(r.fields||{});$('#form-error').textContent='Please check the highlighted fields.';return}
+    if(r.error==='invalid'){const fl=Object.assign({},r.fields||{});if(fl.firstName||fl.lastName){fl.name='Please enter your name';delete fl.firstName;delete fl.lastName}showErrors(fl);$('#form-error').textContent='Please check the highlighted fields.';return}
     if(r.error==='not_found'){rs.saved=null;rs.mode='new';$('#form-error').textContent='We couldn’t find your earlier RSVP. Please send it again.';return}
     $('#form-error').textContent=r.error==='rate_limited'?'Too many attempts. Please wait a few minutes and try again.':'Something went wrong. Please try again.'
   }catch(e){$('#form-error').textContent=errText(e)}
@@ -421,25 +439,26 @@ form.addEventListener('submit',async ev=>{ev.preventDefault();$('#form-error').t
 function showDone(r,justSent){rs.last=r;rs.mode='view';const done=$('#rsvp-done'),st=r.status,going=st==='yes'||st==='maybe';
   const title={yes:`See you there, ${r.firstName}!`,maybe:`Thank you, ${r.firstName}`,no:`We’ll miss you, ${r.firstName}`,withdrawn:'Your RSVP is withdrawn'}[st];
   const lead={yes:'We can’t wait to celebrate with you.',maybe:'Please confirm when you can. You can update this any time.',no:'Thank you for letting us know. Your blessings mean the world to us.',withdrawn:'Changed your mind? You can RSVP again below.'}[st];
-  const ai=RDAYS.findIndex(d=>d.key===r.arrival),di=RDAYS.findIndex(d=>d.key===r.departure),party=1+(r.plusOnes||[]).length+(+r.kids||0);
+  const ai=dIdx(r.arrival),di=dIdx(r.departure),party=1+(r.plusOnes||[]).length+(+r.kids||0);
   const mine=going?WEDDING.events.filter(e=>(r.events||[]).includes(e.id)):[];
   const rows=[['RSVP',{yes:'Attending',maybe:'Tentative',no:'Can’t come',withdrawn:'Withdrawn'}[st]]].concat(going?[['Dates',ai>=0&&di>=0?`${dayText(ai)} → ${dayText(di)}`:''],['Party',`${party} ${party>1?'people':'person'}`],['Stay',r.accommodation?'Needed':'Not needed']]:[]);
   const wa=`https://wa.me/${WEDDING.contact.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`Namaste Hemanth! ${r.firstName} ${r.lastName} here. I just sent my RSVP: ${rows[0][1]}${going?` (${party} ${party>1?'people':'person'})`:''}.`)}`;
   const cal=mine.length?`<div class="cal-box"><span class="lbl">Add ${mine.length>1?`your ${mine.length} events`:'it'} to your calendar</span><div class="cal-btns"><button class="btn solid" type="button" data-act="apple">${calSvg}Apple</button><button class="btn" type="button" data-act="google">${calSvg}Google</button></div><div class="collapse" id="g-wrap"><div><ul class="g-list">${mine.length>1?`<li class="g-all"><span>All ${mine.length} events at once<small>One tap adds a “Hemanth & Alekya’s Wedding” calendar</small></span><a href="${esc(gcalAll(mine))}" target="_blank" rel="noopener noreferrer" data-g>Add all</a></li>`:''}${mine.map(e=>`<li><span>${esc(e.title)}<small>${weekday(e).slice(0,3)} ${e.d} ${MON[e.m-1].slice(0,3)} · ${time12(e.t)}</small></span><a href="${esc(gcal(e))}" target="_blank" rel="noopener noreferrer" data-g>Add</a></li>`).join('')}</ul></div></div></div>`:'';
   done.className='rsvp-card done '+st;
-  done.innerHTML=`<div class="tick" aria-hidden="true">${{yes:'✓',maybe:'?',no:'♡',withdrawn:'↺'}[st]}</div><h3>${esc(title)}</h3><p>${esc(lead)}</p><dl>${rows.filter(x=>x[1]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${cal}<div class="acts"><button class="btn solid" type="button" data-act="edit">${st==='withdrawn'?'RSVP again':'Change in plans? Update'}</button><a class="btn wa" style="background:linear-gradient(#1f8f4e,#13703a);color:#fff;border-color:#0f5c30" href="${esc(wa)}" target="_blank" rel="noopener noreferrer">${waSvg}Tell Hemanth on WhatsApp</a>${st!=='withdrawn'?'<button class="btn ghost" type="button" data-act="withdraw">Withdraw my RSVP</button>':''}</div>`;
+  done.innerHTML=`<div class="tick" aria-hidden="true">${{yes:'✓',maybe:'<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="M6.5 3h11M6.5 21h11M8 3c0 5 3.6 6.2 3.6 9S8 16 8 21M16 3c0 5-3.6 6.2-3.6 9S16 16 16 21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.6 6.5h4.8L12 10z M8.9 20h6.2L12 16.6z" fill="currentColor"/></svg>',no:'♡',withdrawn:'↺'}[st]}</div><h3>${esc(title)}</h3><p>${esc(lead)}</p><dl>${rows.filter(x=>x[1]).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${cal}<div class="acts"><button class="btn solid" type="button" data-act="edit">${st==='withdrawn'?'RSVP again':'Change in plans? Update'}</button><a class="btn wa" style="background:linear-gradient(#1f8f4e,#13703a);color:#fff;border-color:#0f5c30" href="${esc(wa)}" target="_blank" rel="noopener noreferrer">${waSvg}Tell Hemanth on WhatsApp</a>${st!=='withdrawn'?'<button class="btn ghost" type="button" data-act="withdraw">Withdraw my RSVP</button>':''}</div>`;
   if(mine.length)setCollapse($('#g-wrap'),false);
   done.hidden=false;form.hidden=true;exitEdit();if(justSent){document.dispatchEvent(new CustomEvent('hx:rsvp',{detail:{status:st}}));done.scrollIntoView({block:'center',behavior:reduce?'auto':'smooth'})}}
 function enterEdit(r){fill(r.status==='withdrawn'?Object.assign({},r,{status:''}):r);rs.mode='edit';$('#edit-name').textContent=r.firstName;setCollapse($('#find-top'),false);setCollapse($('#edit-banner'),true);msgChips();$('#rsvp-submit').textContent='Update RSVP';$('#rsvp-done').hidden=true;form.hidden=false;form.classList.add('in');form.scrollIntoView({block:'start',behavior:reduce?'auto':'smooth'})}
 function exitEdit(){setCollapse($('#find-top'),true);setCollapse($('#edit-banner'),false);$('#rsvp-submit').textContent='Send RSVP';F.phone.placeholder='To update your RSVP later';msgChips()}
 $('#edit-cancel').onclick=()=>{if(rs.last)showDone(rs.last);else{rs.mode='new';exitEdit()}};
+$('#ux-ask-chips').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#ux-ask-chips .on').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#ux-ask-note').value=b.textContent});
 $('#msg-chips').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$('#msg-chips').querySelectorAll('.on').forEach(x=>x.classList.remove('on'));b.classList.add('on');F.message.value=b.textContent});
 $('#rsvp-done').addEventListener('click',async e=>{const g=e.target.closest('[data-g]');if(g){setTimeout(()=>{g.textContent='Added ✓';g.classList.add('added')},400);return}
   const b=e.target.closest('[data-act]');if(!b)return;const r=rs.last;
   if(b.dataset.act==='edit')enterEdit(r);
   if(b.dataset.act==='apple')location.href=calFile(WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id)));
   if(b.dataset.act==='google'){const mine=WEDDING.events.filter(ev=>(r.events||[]).includes(ev.id));if(mine.length===1)window.open(gcal(mine[0]),'_blank','noopener');else{const w=$('#g-wrap');setCollapse(w,!w.classList.contains('open'))}}
-  if(b.dataset.act==='withdraw'&&await ask('You can RSVP again any time if your plans change.',{title:'Withdraw your RSVP?',ok:'Yes, withdraw',cancel:'Keep my RSVP'})){const bb=busyBtn(b,['Withdrawing…','Updating the guest list…','Almost done…']);try{const x=await api({action:'withdraw',id:rs.saved.id,secret:rs.saved.secret});if(x.ok){await bb.ok('Withdrawn');showDone(x.rsvp);return}tell('Could not withdraw. Please try again.')}catch(err){tell(errText(err))}bb.end()}});
+  if(b.dataset.act==='withdraw'&&await ask('You can RSVP again any time if your plans change.',{title:'Withdraw your RSVP?',ok:'Yes, withdraw',cancel:'Keep my RSVP',notes:MSGS.withdraw})){const note=$('#ux-ask-note').value.trim(),bb=busyBtn(b,['Withdrawing…','Updating the guest list…','Almost done…']);try{const x=await api({action:'withdraw',id:rs.saved.id,secret:rs.saved.secret,message:note});if(x.ok){await bb.ok('Withdrawn');showDone(x.rsvp);return}tell('Could not withdraw. Please try again.')}catch(err){tell(errText(err))}bb.end()}});
 const findForm=$('#find-form');
 function openFind(){const f=findForm;f.cc.value=F.cc.value;f.ccx.value=F.ccx.value;ccSync(f);f.phone.value=F.phone.value;$('#find-error').textContent='';$('#find-help').hidden=true;$('#find').showModal()}
 $('#find-top-open').onclick=openFind;
@@ -451,7 +470,7 @@ findForm.addEventListener('submit',async e=>{e.preventDefault();const f=findForm
     else{er.textContent=r.error==='rate_limited'?'Too many attempts. Please wait a few minutes.':'We couldn’t find that number. Check it, or message Hemanth below.';if(r.error!=='rate_limited')findHelp(f);shake(f.querySelector('.phone'))}}
   catch(err){er.textContent=errText(err);shake(f.querySelector('.phone'))}finally{f.classList.remove('sending');bb.end()}});
 // Ready-to-send WhatsApp notes to Hemanth (his Indian number has WhatsApp), most likely one first.
-function findHelp(f){const p=phoneOf(f),digits=String(p.number).replace(/\D/g,''),name=[F.firstName.value,F.lastName.value].map(s=>nameCase(s.trim())).filter(Boolean).join(' ');
+function findHelp(f){const p=phoneOf(f),digits=String(p.number).replace(/\D/g,''),name=nameCase(F.fullName.value.replace(/\s+/g,' ').trim());
   const me=`Namaste Hemanth! ${name?`This is ${name}. `:''}I couldn’t find my RSVP on the website${digits?` with my number ${p.cc?p.cc+' ':''}${digits}`:''}.`;
   const opts=[['no','I can’t make it',`${me} Sadly I won’t be able to make it to the wedding. Sending love and blessings to you and Alekya! 🙏`],['change','My plans changed',`${me} My plans have changed and I’d like to update my RSVP: `],['help','Please help me find it',`${me} I’m still coming! Could you please help me find or update it? 🙏`]];
   if(radioVal(form,'status')!=='no')opts.push(opts.shift());
@@ -486,7 +505,7 @@ $('#today-bar').addEventListener('click',e=>{if(e.target.closest('.tb-x')){today
 tickCountdown();tickToday();setInterval(tickCountdown,1e3);setInterval(tickToday,15e3);
 document.addEventListener('hx:opening-complete',()=>setTimeout(tickToday,1200));
 
-/* ----- Guest photos: off until WEDDING.photos is true (and the backend has PHOTOS_OPEN=yes) ----- */
+/* ----- Guest photos: off until WEDDING.photoDrop is true (and the backend has PHOTOS_OPEN=yes) ----- */
 const thumb=(id,w)=>`https://drive.google.com/thumbnail?id=${encodeURIComponent(id)}&sz=w${w}`;
 const photoTile=(p,fresh,src)=>`<a class="pd-tile${fresh?' fresh':''}" href="https://drive.google.com/file/d/${encodeURIComponent(p.fileId)}/view" target="_blank" rel="noopener noreferrer"><img src="${esc(src||thumb(p.fileId,600))}" alt="Photo shared by ${esc(p.name)}" loading="lazy" decoding="async"><span>${esc(p.name)}</span></a>`;
 async function loadPhotos(){try{const r=await api({action:'photos'});if(!r.ok||(!r.open&&!r.photos.length))return;
@@ -501,10 +520,10 @@ $('#pd-file').addEventListener('change',async e=>{const files=[...e.target.files
   for(const f of files){const li=document.createElement('li');li.innerHTML=`<i class="bspin" aria-hidden="true"></i><b>${esc(f.name)}</b><em>Preparing…</em>`;prog.append(li);
     try{const s=await shrink(f);li.querySelector('em').textContent='Uploading…';const r=await api({action:'photo',name,data:s.data,w:s.w,h:s.h});if(!r.ok)throw new Error(r.error);
       li.classList.add('done');li.querySelector('em').textContent='Shared ✓';ok++;$('#pd-grid .wall-empty')?.remove();$('#pd-grid').insertAdjacentHTML('afterbegin',photoTile(r.photo,true,s.preview))}
-    catch(err){li.classList.add('bad');li.querySelector('em').textContent=err.message==='closed'?'Photo sharing opens on 29 Nov':'Couldn’t upload, please try again'}
+    catch(err){li.classList.add('bad');li.querySelector('em').textContent=err.message==='closed'?'Photo sharing isn’t open yet':'Couldn’t upload, please try again'}
     setTimeout(()=>{li.classList.add('out');setTimeout(()=>li.remove(),400)},3500)}
   if(ok)track('photo_upload')});
-if(WEDDING.photos)document.addEventListener('hx:opening-complete',()=>setTimeout(loadPhotos,1500),{once:true});
+if(WEDDING.photoDrop)document.addEventListener('hx:opening-complete',()=>setTimeout(loadPhotos,1500),{once:true});
 
 /* ----- Hidden admin dashboard: tap the temples at the bottom 3 times ----- */
 let taps=[],admPw='',admData=null;
@@ -514,22 +533,25 @@ $('#adm-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.
   // The backend takes a few seconds, so the steps it is working through are shown meanwhile.
   const steps=[[900,'Gathering RSVPs…'],[2200,'Counting visitors…'],[3800,'Drawing the charts…'],[6000,'Almost there…']].map(([ms,t])=>setTimeout(()=>{lt.textContent=t},ms));
   try{const r=await api({action:'admin',password:pw});steps.forEach(clearTimeout);
-    if(r.ok){admPw=pw;admData=r;admSig=admSigOf(r);lt.textContent='Welcome back';f.classList.add('done');await new Promise(res=>setTimeout(res,450));$('#adm-login').close();renderAdmin();openAdmin()}
+    if(r.ok){admPw=pw;admData=tidyAdm(r);admSig=admSigOf(r);lt.textContent='Welcome back';f.classList.add('done');await new Promise(res=>setTimeout(res,450));$('#adm-login').close();renderAdmin();openAdmin()}
     else{er.textContent='Incorrect password.';f.classList.add('shake')}}
-  catch(err){steps.forEach(clearTimeout);er.textContent=err.code==='not_configured'?'Connect the RSVP backend first (apiUrl).':'Could not reach the server.';f.classList.add('shake')}
+  catch(err){console.error(err);steps.forEach(clearTimeout);er.textContent=err.code==='not_configured'?'Connect the RSVP backend first (apiUrl).':'Could not reach the server.';f.classList.add('shake')}
   finally{btn.disabled=false;f.classList.remove('busy','done')}});
+// An older backend may still report 29/30 Nov and removed events; show only today's plan.
+function tidyAdm(r){const s=r.stats||{},ids=WEDDING.events.map(e=>e.id);if(s.perEvent)s.perEvent=s.perEvent.filter(e=>ids.includes(e.id));if(s.perDay)s.perDay=s.perDay.filter(d=>!d.key||d.key>=RDAYS[0].key);return r}
 let admTimer=null;
 function openAdmin(){const a=$('#admin');a.classList.remove('leaving');a.hidden=false;root.classList.add('locked');a.scrollTop=0;clearInterval(admTimer);admTimer=setInterval(()=>{if(!$('#adm-edit').open&&!$('#adm-vdel').open&&!document.hidden)reloadAdmin().catch(()=>{})},60000)}
 function closeAdmin(){clearInterval(admTimer);const a=$('#admin');a.classList.add('leaving');setTimeout(()=>{a.hidden=true;a.classList.remove('leaving');a.innerHTML='';if(opened)root.classList.remove('locked')},380);admPw='';admData=null;admSessions=null;admSig='';admTab='overview';admKeep={}}
-const dKey=k=>{const i=RDAYS.findIndex(d=>d.key===k);return i<0?'':`${RDAYS[i].day} ${RDAYS[i].label}`};
+const dKey=k=>{const i=dIdx(k);return i<0?'':`${RDAYS[i].day} ${RDAYS[i].label}`};
 // Admin times are shown in Central Time, where the wedding is.
 const fmtTime=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleString('en-US',{timeZone:'America/Chicago',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+' CT'};
 const STL={yes:'Attending',maybe:'Tentative',no:'Not attending',withdrawn:'Withdrawn'},GL={male:'M',female:'F',other:'Other'},TL={DFW:'DFW',DAL:'Love Field',drive:'Driving',other:'Other'},FL={veg:'Veg',nonveg:'Non-veg',jain:'Jain',vegan:'Vegan'};
 function bars(rows,two=true,legend='Solid = attending · striped = tentative'){const max=Math.max(1,...rows.map(r=>r.a+(r.b||0)));return`<div class="bars">${rows.map(r=>`<div class="bar"><span>${esc(r.label)}</span><span class="t"><i class="y" style="width:${r.a/max*100}%"></i>${two?`<i class="m" style="width:${(r.b||0)/max*100}%"></i>`:''}</span><span class="n">${r.a}${two&&r.b?` <small style="color:#a86a00">+${r.b}</small>`:''}</span></div>`).join('')}</div>${two&&legend?`<p class="legend">${legend}</p>`:''}`}
 function donut(parts){const tot=parts.reduce((a,p)=>a+p.v,0)||1;let off=25;return`<div class="donut"><svg viewBox="0 0 42 42" role="img" aria-label="Responses by status"><circle cx="21" cy="21" r="15.915" fill="none" stroke="#efe0bd" stroke-width="6"/>${parts.map(p=>{const len=p.v/tot*100,s=`<circle class="seg" cx="21" cy="21" r="15.915" fill="none" stroke="${p.c}" stroke-width="6" stroke-dasharray="${len} ${100-len}" stroke-dashoffset="${off}"/>`;off-=len;return s}).join('')}<text x="21" y="23.5" text-anchor="middle" font-size="8" font-family="Cinzel,serif" fill="#6d1420">${tot===1&&!parts.some(p=>p.v)?0:tot}</text></svg><ul>${parts.map(p=>`<li${p.k&&p.l!=='Other'?`${lever(p.k,p.l)} class="lever" tabindex="0" role="button"`:''}><i style="background:${p.c}"></i>${esc(p.l)}: <b>${p.v}</b></li>`).join('')}</ul></div>`}
-function histogram(days,cap){const max=Math.max(1,...days.map(d=>d.yes+d.maybe)),lbl=i=>`${RDAYS[i].day} ${RDAYS[i].label}${RDAYS[i].morning?' am':''}`;
-  const stay=(d,i)=>{if(i===0||i===days.length-1)return'—';const t=d.stayingYes+d.stayingMaybe;return`<span class="${cap&&t>cap?'neg':''}">${d.stayingYes}${d.stayingMaybe?` <small>+${d.stayingMaybe}</small>`:''}${cap?` / ${cap}`:''}</span>`};
-  return`<div class="hgram">${days.map((d,i)=>`<div class="hcol"><span class="htot">${d.yes}${d.maybe?`<small>+${d.maybe}</small>`:''}</span><div class="hstack" style="height:${(d.yes+d.maybe)/max*100}%">${d.maybe?`<i class="m" style="flex:${d.maybe}"></i>`:''}${d.yesKids?`<i class="k" style="flex:${d.yesKids}"></i>`:''}${d.yesAdults?`<i class="a" style="flex:${d.yesAdults}"></i>`:''}</div><span class="hday">${esc(RDAYS[i].day)}<br>${esc(RDAYS[i].label)}${RDAYS[i].morning?' am':''}</span></div>`).join('')}</div>
+// Labels come from the backend's own day list, so an older backend with extra days still renders.
+function histogram(all,cap){const days=all.filter(d=>!d.key||d.key>=RDAYS[0].key),max=Math.max(1,...days.map(d=>d.yes+d.maybe)),part=d=>{const w=String(d.label||d.key||'').replace(/\s*\(morning\)/,' am').split(' ');return[w[0]||'',w.slice(1).join(' ')]},lbl=i=>part(days[i]).join(' ');
+  const stay=(d,i)=>{if(i===days.length-1)return'—';const t=d.stayingYes+d.stayingMaybe;return`<span class="${cap&&t>cap?'neg':''}">${d.stayingYes}${d.stayingMaybe?` <small>+${d.stayingMaybe}</small>`:''}${cap?` / ${cap}`:''}</span>`};
+  return`<div class="hgram">${days.map((d,i)=>`<div class="hcol"><span class="htot">${d.yes}${d.maybe?`<small>+${d.maybe}</small>`:''}</span><div class="hstack" style="height:${(d.yes+d.maybe)/max*100}%">${d.maybe?`<i class="m" style="flex:${d.maybe}"></i>`:''}${d.yesKids?`<i class="k" style="flex:${d.yesKids}"></i>`:''}${d.yesAdults?`<i class="a" style="flex:${d.yesAdults}"></i>`:''}</div><span class="hday">${esc(part(d)[0])}<br>${esc(part(d)[1])}</span></div>`).join('')}</div>
   <p class="legend"><i class="lg a"></i>Adults<i class="lg k"></i>Kids<i class="lg m"></i>Tentative</p>
   <table class="plan"><thead><tr><th>Day</th><th>Adults</th><th>Kids</th><th>Tentative</th><th>Staying</th></tr></thead><tbody>${days.map((d,i)=>`<tr><td>${esc(lbl(i))}</td><td>${d.yesAdults}</td><td>${d.yesKids}</td><td>${d.maybe}</td><td>${stay(d,i)}</td></tr>`).join('')}</tbody></table>`}
 const ICO={backup:'<svg viewBox="0 0 24 24"><path d="M4 7h16v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M3 4h18v3H3zM10 11h4"/></svg>',add:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',refresh:'<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',ok:'<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',csv:'<svg viewBox="0 0 24 24"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="m15 8 4 4-4 4M19 12H9"/></svg>',filter:'<svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7.5V19l-4 1v-7.5Z"/></svg>',trash:'<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg>',reset:'<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4v5h5"/></svg>',clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>'};
@@ -551,7 +573,7 @@ function renderAdmin(quiet){const r=admData,s=r.stats,g=s.accommodation.gender;a
    <nav class="adm-tabs" role="tablist" aria-label="Dashboard sections">${tabs.map(([k,l,n])=>`<button type="button" role="tab" id="adm-tab-${k}" data-tab="${k}" aria-controls="adm-${k}" aria-selected="${admTab===k}">${l}${n!==''?`<small>${n}</small>`:''}</button>`).join('')}</nav>
   ${pane('overview',`${kpis(kp)}
   <div class="adm-grid">
-   <div class="panel wide"><h3>Daily headcount · plan food &amp; stay</h3>${histogram(s.perDay,s.accommodation.capacity)}<div class="adm-chips left"><span class="ac">Stays from 30 Nov</span><span class="ac">Airbnb holds <b>${s.accommodation.capacity||15}</b></span><span class="ac">Staying: <b>${g.male}</b> M · <b>${g.female}</b> F${g.other?` · <b>${g.other}</b> other`:''}${g.unspecified?` · <b>${g.unspecified}</b> not given`:''} · <b>${s.accommodation.kids}</b> kids</span></div></div>
+   <div class="panel wide"><h3>Daily headcount · plan food &amp; stay</h3>${histogram(s.perDay,s.accommodation.capacity)}<div class="adm-chips left"><span class="ac">Stays from ${esc(dayText(0))}</span><span class="ac">Airbnb holds <b>${s.accommodation.capacity||15}</b></span><span class="ac">Staying: <b>${g.male}</b> M · <b>${g.female}</b> F${g.other?` · <b>${g.other}</b> other`:''}${g.unspecified?` · <b>${g.unspecified}</b> not given`:''} · <b>${s.accommodation.kids}</b> kids</span></div></div>
    <div class="panel"><h3>Changes in plans</h3>${moves.length?`<ol class="adm-tl">${moves.slice(0,20).map(h=>histItem(h)).join('')}</ol>`:'<p class="legend">No changes yet.</p>'}</div>
    <div class="panel"><h3>Headcount by event</h3>${bars(s.perEvent.map(e=>({label:e.label,a:e.yes,b:e.maybe})))}</div>
    <div class="panel"><h3>Responses</h3>${donut([{l:'Attending',v:s.responses.yes,c:'#2f7d43'},{l:'Tentative',v:s.responses.maybe,c:'#e0a100'},{l:'Not attending',v:s.responses.no,c:'#a3162b'},{l:'Withdrawn',v:s.responses.withdrawn,c:'#9b8f80'}])}</div>
@@ -614,9 +636,15 @@ function vstats(ss){const people={};ss.forEach(s=>{(people[s.key]=people[s.key]|
     funnel:{visited:n,opened:has(s=>s.sec.has('opened')),events:has(s=>s.sec.has('events')),rsvpSeen:has(s=>s.sec.has('rsvp')),photos:has(s=>s.sec.has('photos')),started:has(s=>(RSTEP[s.rsvp]||0)>=1),sent:has(s=>(RSTEP[s.rsvp]||0)>=2)},
     days}}
 // Every day in the chosen range (up to the last 60), so quiet days show as gaps rather than disappearing.
+// Newest first; switches to weeks once there are more than five weeks of days.
 function dayList(days,all){const keys=Object.keys(days).sort(),[a,b]=afRange();if(!keys.length)return[];
-  let from=a>'0000-00-00'?a:(all.length?all[0].d:keys[0]),to=b<'9999-99-99'?b:dayKey(Date.now());if(to<keys[keys.length-1])to=keys[keys.length-1];
-  const out=[];for(let t=Date.parse(to+'T12:00:00Z');out.length<60;t-=864e5){const k=new Date(t).toISOString().slice(0,10);if(k<from)break;out.unshift(days[k]?{date:k,visits:days[k].visits,unique:days[k].p.size}:{date:k,visits:0,unique:0})}return out}
+  let from=a>'0000-00-00'?a:(all.length?all[0].d:keys[0]),to=b<'9999-99-99'?b:dayKey(Date.now());if(to<keys[keys.length-1])to=keys[keys.length-1];if(from>keys[0]&&!(a>'0000-00-00'))from=keys[0];
+  const md=k=>new Date(k+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}),list=[];
+  for(let t=Date.parse(to+'T12:00:00Z');list.length<1100;t-=864e5){const k=new Date(t).toISOString().slice(0,10);if(k<from)break;const d=days[k];list.push({date:k,visits:d?d.visits:0,p:d?d.p:new Set()})}
+  if(list.length<=35)return list.map(x=>({date:x.date,label:md(x.date),short:md(x.date),visits:x.visits,unique:x.p.size}));
+  const out=[];for(let i=0;i<list.length;i+=7){const g=list.slice(i,i+7),p=new Set();g.forEach(x=>x.p.forEach(v=>p.add(v)));const start=g[g.length-1].date,end=g[0].date;
+    out.push({date:start,label:`Week of ${md(start)} – ${md(end)}`,short:md(start),visits:g.reduce((n,x)=>n+x.visits,0),unique:p.size,week:true})}
+  return out}
 const hourLabel=h=>`${h%12||12} ${h<12?'am':'pm'}`;
 function visitsPane(){const ranges=[['today','Today'],['7d','7 days'],['30d','30 days'],['all','All time'],['custom','Custom']];
   return`<div class="af" id="af"><div class="af-row"><div class="af-seg" role="group" aria-label="Date range">${ranges.map(([k,l])=>`<button type="button" data-range="${k}" aria-pressed="${AF.range===k}">${l}</button>`).join('')}</div>
@@ -654,8 +682,8 @@ function anRender(o={}){const el=$('#adm-an');if(!el)return;if(!o.keep)anShown=4
   const dl=(now,was)=>{if(!B||!was&&!now)return'';if(!was)return'<small class="dl up">new</small>';const c=Math.round((now-was)/was*100);return c?`<small class="dl ${c>0?'up':'down'}" title="vs the ${span} day${span>1?'s':''} before">${c>0?'▲':'▼'} ${Math.abs(c)}%</small>`:'<small class="dl">=</small>'};
   const k=[['g',P,'Unique visitors',dl(P,B&&B.people)],['',A.returning,'Returning'],['',A.newPeople,'First-time'],['',A.visits,'Visits',dl(A.visits,B&&B.visits)],['',dur(A.avgDuration),'Avg time on page'],['',dur(A.medianDuration),'Typical time'],['',A.avgScroll+'%','Avg scrolled'],['',pct(F.opened,F.visited),'Opened envelope'],[F.sent?'g':'',pct(F.sent,F.visited),'Sent an RSVP',dl(F.sent,B&&B.funnel.sent)],['',A.avgOpenAfter?A.avgOpenAfter+'s':'—','Time to open'],['',A.avgLoadMs?(A.avgLoadMs/1000).toFixed(1)+'s':'—','Page load']];
   const steps=[['Visited',F.visited],['Opened the envelope',F.opened],['Saw the events',F.events],['Reached the RSVP form',F.rsvpSeen],['Started an RSVP',F.started],['Sent an RSVP',F.sent],['Saw the photos',F.photos]];
-  const daily=dayList(A.days,all),dLabel=d=>new Date(d.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}),dmax=Math.max(1,...daily.map(d=>d.visits));
-  const dailyChart=daily.length?`<div class="dcols">${daily.map((d,i)=>{const u=d.unique,r=Math.max(0,d.visits-u);return`<div style="--i:${i}" title="${esc(dLabel(d))}: ${u} ${u===1?'person':'people'}, ${d.visits} visit${d.visits===1?'':'s'}"><i class="r" style="height:${r/dmax*100}%"></i><i class="u" style="height:${u/dmax*100}%"></i></div>`}).join('')}</div><div class="hours-l"><span>${esc(dLabel(daily[0]))}</span><span>${esc(dLabel(daily[daily.length-1]))}</span></div><p class="legend"><i class="lg a"></i>People<i class="lg m"></i>Repeat visits</p>`:'<p class="legend">No visits in this range.</p>';
+  const daily=dayList(A.days,all),dmax=Math.max(1,...daily.map(d=>d.visits)),weeks=daily.length&&daily[0].week;
+  const dailyChart=daily.length?`<div class="dscroll"><div class="dcols">${daily.map((d,i)=>{const u=d.unique,r=Math.max(0,d.visits-u);return`<div style="--i:${i}" title="${esc(d.label)}: ${u} ${u===1?'person':'people'}, ${d.visits} visit${d.visits===1?'':'s'}"><b>${d.visits||''}</b><i class="r" style="height:${r/dmax*100}%"></i><i class="u" style="height:${u/dmax*100}%"></i><span>${esc(d.short)}</span></div>`}).join('')}</div></div><p class="legend"><i class="lg a"></i>People<i class="lg m"></i>Repeat visits<span class="dnote">${weeks?'By week':'By day'} · newest first${daily.length>8?' · scroll for older':''}</span></p>`:'<p class="legend">No visits in this range.</p>';
   const evRows=A.events.map((e,i)=>`<tr><td data-v="${i+1}">${i+1}</td><td>${esc(evLabel(e.label))}</td><td data-v="${e.people}"><b>${e.people}</b></td><td data-v="${e.people}"><span class="share"><i style="width:${P?Math.round(e.people/P*100):0}%"></i></span> ${pct(e.people,P)}</td><td data-v="${e.total}">${e.total}</td></tr>`).join('');
   const recent=ss.slice().reverse(),rows=recent.slice(0,anShown).map(r=>`<tr><td data-v="${r.t}">${esc(fmtTime(r.at))}${r.n>1?`<br><small>${r.n} loads, counted once</small>`:''}</td><td>${r.p?`<code>${esc(r.p.slice(0,6))}</code>`:'—'}${r.multi?' <span class="tag-chip ret">returning</span>':''}</td><td>${esc(joinPlace(r.city,r.region,r.country)||'—')}</td><td>${esc([r.device,r.os].filter(Boolean).join(' · '))}<br><small>${esc([r.browser,sizeOf(r.w),r.net&&r.net.toUpperCase(),r.theme==='dark'?'dark mode':''].filter(Boolean).join(' · '))}</small></td><td><span class="tag-chip src">${esc(r.source||'—')}</span></td><td data-v="${r.dur}">${dur(r.dur)}${r.open?`<br><small>opened after ${r.open}s</small>`:''}</td><td data-v="${r.scroll}">${r.scroll?r.scroll+'%':'—'}</td><td>${[...r.sec].map(s=>`<span class="tag-chip">${esc(SEC[s]||s)}</span>`).join('')||'—'}</td><td>${Object.keys(r.act).filter(s=>r.act[s]>0&&!/^(scroll_|saw_)/.test(s)).map(s=>`<span class="tag-chip act">${esc(evLabel(s))}</span>`).join('')||'—'}</td><td>${r.rsvp?`<span class="pill ${r.rsvp==='started'?'maybe':esc(r.rsvp)}">${r.rsvp==='started'?'Started':STL[r.rsvp]||'Sent'}</span>`:'—'}</td><td>${esc(r.tz||'—')}</td></tr>`).join('');
   el.innerHTML=`${kpis(k)}<div class="adm-chips left"><span class="ac">No cookies</span><span class="ac">IPs kept scrambled</span><span class="ac">Reloads within 30 min count once</span><span class="ac">Charts count people</span><span class="ac">Times in CT</span></div>
@@ -701,7 +729,7 @@ const xapi=async(kind,body={})=>{const r=await api(Object.assign({action:'adminE
 const digits10=p=>String(p||'').replace(/\D/g,'').slice(-10);
 const firstOf=n=>String(n||'').trim().split(/\s+/)[0]||'there';
 const waLink=(phone,text)=>`https://wa.me/${String(phone).replace(/\D/g,'')}?text=${encodeURIComponent(text)}`;
-const nudgeText=n=>`Namaste ${firstOf(n)}! 🙏 Hemanth & Alekya here. We’d love to celebrate with you (29 Nov – 3 Dec, Celina TX). Could you let us know if you can make it? It takes a minute: https://is.gd/hemwedsalekya`;
+const nudgeText=n=>`Namaste ${firstOf(n)}! 🙏 Hemanth & Alekya here. We’d love to celebrate with you (1 – 3 Dec, Celina TX). Could you let us know if you can make it? It takes a minute: https://is.gd/hemwedsalekya`;
 const thanksText=n=>`Dear ${firstOf(n)}, thank you so much for celebrating with us and for all your blessings 🙏 It meant the world to us. Our wedding site: ${SITE}\n\nWith love, Hemanth & Alekya`;
 const going=x=>x.status==='yes'||x.status==='maybe',partyOf=x=>1+x.plusOnes.length+(+x.kids||0);
 function matchInvite(inv){const d=digits10(inv.phone),k=nameKey(inv.name);return admData.rsvps.find(x=>(d&&digits10(x.phone)===d)||nameKey(x.firstName+' '+x.lastName)===k)}
@@ -836,12 +864,12 @@ $('#ed-po-add').onclick=()=>{if($('#ed-po').children.length<10)edPoRow()};
 $('#ed-po').addEventListener('click',e=>{const b=e.target.closest('button');if(b)b.parentElement.remove()});
 function openEditor(x){edId=x?x.id:null;$('#ed-title').textContent=x?`Edit ${x.firstName} ${x.lastName}`:'Add guest';$('#ed-error').textContent='';ed.reset();$('#ed-po').innerHTML='';
   if(x){ed.firstName.value=x.firstName;ed.lastName.value=x.lastName;const ph=x.phone||'',cc=ph.startsWith('+91')?'+91':ph.startsWith('+1')?'+1':ph?'other':'+1';ed.cc.value=cc;ed.phone.value=cc==='other'?ph:ph.slice(cc.length);
-    ed.status.value=x.status==='withdrawn'?'no':x.status;ed.gender.value=x.gender||'';const ai=RDAYS.findIndex(d=>d.key===x.arrival),di=RDAYS.findIndex(d=>d.key===x.departure);ed.arrival.value=ai>=0?ai:0;ed.departure.value=di>0?di:5;
+    ed.status.value=x.status==='withdrawn'?'no':x.status;ed.gender.value=x.gender||'';const ai=dIdx(x.arrival),di=dIdx(x.departure);ed.arrival.value=ai>=0?ai:0;ed.departure.value=di>0?di:RDAYS.length-1;
     x.plusOnes.forEach(p=>edPoRow(p));ed.kids.value=x.kids||0;ed.accommodation.checked=!!x.accommodation;ed.message.value=x.message||''}
-  else{ed.arrival.value=0;ed.departure.value=5;ed.kids.value=0}
+  else{ed.arrival.value=0;ed.departure.value=RDAYS.length-1;ed.kids.value=0}
   edEvents();$('#adm-edit').showModal()}
 ed.addEventListener('submit',async e=>{e.preventDefault();const er=$('#ed-error'),a=+ed.arrival.value,b=+ed.departure.value,st=ed.status.value,evs=st==='no'?[]:inRange(a,b).map(x=>x.id);er.textContent='';
-  if(!ed.firstName.value.trim()||!ed.lastName.value.trim()){er.textContent='First and last name are required.';return}
+  if(!ed.firstName.value.trim()){er.textContent='First name is required.';return}
   if(st!=='no'&&b<=a){er.textContent='Leaving must be after arriving.';return}
   const rsvp={firstName:ed.firstName.value,lastName:ed.lastName.value,phone:ed.cc.value==='other'?{cc:'',number:ed.phone.value}:{cc:ed.cc.value,number:ed.phone.value},status:st,gender:ed.gender.value,arrival:a,departure:b,events:evs,
     plusOnes:[...$('#ed-po').children].map(r=>({name:r.querySelector('input').value,gender:r.querySelector('select').value})),kids:Math.max(0,Math.min(10,parseInt(ed.kids.value||'0',10)||0)),accommodation:ed.accommodation.checked,message:ed.message.value};
@@ -855,7 +883,7 @@ async function reloadAdmin(manual){const a=$('#admin'),t0=Date.now();const r=awa
   if(manual)await new Promise(res=>setTimeout(res,Math.max(0,750-(Date.now()-t0))));const top=a.scrollTop;
   const sig=admSigOf(r);
   if(!manual&&sig===admSig){admData.generatedAt=r.generatedAt;const u=$('#adm-upd');if(u)u.textContent=timeOnly(r.generatedAt);return}
-  admSig=sig;saveAdmKeep();admData=r;const more=$('#af-more')?.classList.contains('open');renderAdmin(!manual);if(more)setCollapse($('#af-more'),true);a.scrollTo({top,behavior:'instant'})}
+  admSig=sig;saveAdmKeep();admData=tidyAdm(r);const more=$('#af-more')?.classList.contains('open');renderAdmin(!manual);if(more)setCollapse($('#af-more'),true);a.scrollTo({top,behavior:'instant'})}
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
 $('#admin').addEventListener('click',async e=>{const a=e.target.closest('[data-a]'),tab=e.target.closest('[data-tab]'),hb=e.target.closest('[data-hist]'),del=e.target.closest('[data-del]'),edit=e.target.closest('[data-edit]');
   if(edit){openEditor(admData.rsvps.find(x=>x.id===edit.dataset.edit));return}
