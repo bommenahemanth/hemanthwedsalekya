@@ -18,6 +18,8 @@
    seen(title,()=>k.classList.add('on'),.6);
  }
 
+ $$('.page .temple').forEach(sec=>['t','b'].forEach(k=>{const d=document.createElement('div');d.className='dl-seam '+k;d.setAttribute('aria-hidden','true');sec.append(d)}));
+
  /* 2: garlands bounce with scroll speed; 3: sections lift in like turning a page */
  const garlands=$$('.thoranam');
  if(!calm()){
