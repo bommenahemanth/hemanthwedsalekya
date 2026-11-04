@@ -234,8 +234,8 @@ function onOpened(){
   if(!VISIT.openAfter){VISIT.openAfter=Math.round((Date.now()-VISIT.t0)/1000);track('envelope_open')}
 }
 
-/* ----- Visit analytics: no cookies and nothing stored on the device beyond this browser tab's session.
-   One record per tab session; the backend keeps only a salted hash of the IP and coarse place (city/state/country). ----- */
+/* ----- Visit analytics: no cookies. One record per tab session; a random ID kept in this browser tells repeat visits
+   apart even when the network changes, and the backend stores only a salted hash of it plus coarse place. ----- */
 const VISIT={id:'',t0:Date.now(),sections:new Set(),actions:{},scroll:0,rsvp:'',openAfter:0};
 // Every tap or milestone goes to both our own analytics and Microsoft Clarity (when Clarity is loaded on the live site).
 const cl=(...a)=>{try{if(window.clarity)window.clarity(...a)}catch{}};
@@ -254,11 +254,14 @@ async function visitGeo(){
 function startVisit(){
   const p=new URLSearchParams(location.search),src=(p.get('src')||p.get('utm_source')||'').toLowerCase();
   // Drop the tag from the address bar so a copied link isn't credited to the QR code or share button again.
-  if(src)try{p.delete('src');p.delete('utm_source');history.replaceState(null,'',location.pathname+(p.toString()?'?'+p:'')+location.hash)}catch{}
+  if(p.has('me'))try{localStorage.setItem('hx-owner','1')}catch{}
+  if(src||p.has('me'))try{p.delete('src');p.delete('utm_source');p.delete('me');history.replaceState(null,'',location.pathname+(p.toString()?'?'+p:'')+location.hash)}catch{}
   if(!WEDDING.apiUrl)return;
+  // The couple's own devices (admin login or a ?me link) are left out of the visitor numbers.
+  let vid='';try{if(localStorage.getItem('hx-owner'))return;vid=localStorage.getItem('hx-vid')||'';if(!vid){vid=crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);localStorage.setItem('hx-vid',vid)}}catch{}
   try{VISIT.id=sessionStorage.getItem('hx-visit')||'';if(VISIT.id)return;VISIT.id=crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);sessionStorage.setItem('hx-visit',VISIT.id)}catch{return}
   let ref='';try{ref=document.referrer?new URL(document.referrer).hostname.replace(/^www\./,''):''}catch{}
-  const base={action:'visit',visitId:VISIT.id,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'',lang:navigator.language||'',screen:`${screen.width}x${screen.height}`,viewport:`${innerWidth}x${innerHeight}`,
+  const base={action:'visit',visitId:VISIT.id,vid,tz:Intl.DateTimeFormat().resolvedOptions().timeZone||'',lang:navigator.language||'',screen:`${screen.width}x${screen.height}`,viewport:`${innerWidth}x${innerHeight}`,
     net:(navigator.connection&&navigator.connection.effectiveType)||'',theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light',src,ref:ref===location.hostname?'':ref,...uaInfo()};
   ['device','os','browser','app'].forEach(k=>{if(base[k])cl('set',k,base[k])});cl('set','source',src||ref||'direct');
   visitGeo().then(g=>{if(g.country)cl('set','country',g.country);if(g.region)cl('set','state',g.region);return api(Object.assign(base,g),0)}).catch(()=>{})}
@@ -273,7 +276,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)endVisit()}
 addEventListener('scroll',()=>{const h=document.documentElement.scrollHeight-innerHeight;if(h>0)VISIT.scroll=Math.max(VISIT.scroll,Math.min(100,Math.round(scrollY/h*100)));[25,50,75,100].forEach(m=>{if(VISIT.scroll>=m&&!VISIT.actions['scroll_'+m])track('scroll_'+m)})},{passive:true});
 [['events','section.events'],['rsvp','#rsvp'],['photos','#photos']].forEach(([k,sel])=>{const el=$(sel);if(el)new IntersectionObserver((es,io)=>{if(es.some(e=>e.isIntersecting)){VISIT.sections.add(k);track('saw_'+k);io.disconnect()}},{threshold:.25}).observe(el)});
 // First match wins, so specific selectors come before general ones.
-const CLICKS=[['.ux-qr-btn','qr'],['.ux-share','share'],['#music',()=>musicOn?'music_off':'music_on'],
+const CLICKS=[['.ux-qr-btn','qr'],['.ux-card-btn','card_download'],['.ux-share','share'],['#music',()=>musicOn?'music_off':'music_on'],
   ['[data-act=apple],#cal-ics','calendar_apple'],['[data-act=google],#cal-google','calendar_google'],['.g-all [data-g]','calendar_google_all'],['[data-g]','calendar_google_one'],['.date-btn','event_calendar'],
   ['#venue-link,a[href*="maps"],a[href^="geo:"]','map'],['.find-wa a','find_whatsapp'],['a[href*="wa.me"]','whatsapp'],['a[href^="tel:"]','call'],['a[href^="sms:"]','text'],['a[href^="mailto:"]','email'],
   ['.person',el=>'contact_'+((el.querySelector('b')||{}).textContent||'').toLowerCase().replace(/[^a-z]/g,'')],
@@ -553,7 +556,7 @@ $('#adm-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.
   // The backend takes a few seconds, so the steps it is working through are shown meanwhile.
   const steps=[[900,'Gathering RSVPs…'],[2200,'Counting visitors…'],[3800,'Drawing the charts…'],[6000,'Almost there…']].map(([ms,t])=>setTimeout(()=>{lt.textContent=t},ms));
   try{const r=await api({action:'admin',password:pw});steps.forEach(clearTimeout);
-    if(r.ok){admPw=pw;admData=tidyAdm(r);admSig=admSigOf(r);lt.textContent='Welcome back';f.classList.add('done');await new Promise(res=>setTimeout(res,450));$('#adm-login').close();renderAdmin();openAdmin()}
+    if(r.ok){try{localStorage.setItem('hx-owner','1')}catch{}admPw=pw;admData=tidyAdm(r);admSig=admSigOf(r);lt.textContent='Welcome back';f.classList.add('done');await new Promise(res=>setTimeout(res,450));$('#adm-login').close();renderAdmin();openAdmin()}
     else{er.textContent='Incorrect password.';f.classList.add('shake')}}
   catch(err){console.error(err);steps.forEach(clearTimeout);er.textContent=err.code==='not_configured'?'Connect the RSVP backend first (apiUrl).':'Could not reach the server.';f.classList.add('shake')}
   finally{btn.disabled=false;f.classList.remove('busy','done')}});
