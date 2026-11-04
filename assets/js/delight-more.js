@@ -154,10 +154,12 @@
      '<rect x="3" y="5" width="18" height="14" rx="2" fill="#fff6dc" stroke="#8a6420" stroke-width="1.3"/><path class="ht" d="M12 16.5s-4.2-2.6-4.2-5.2a2.1 2.1 0 0 1 4.2-.9 2.1 2.1 0 0 1 4.2.9c0 2.6-4.2 5.2-4.2 5.2z" fill="#d2414f"/>'];
    $$('.ux-dots button i').forEach((ic,k)=>{if(!ICON[k])return;ic.classList.add('dl-ic');ic.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`});
    dots.append(l);
-   l.setAttribute('role','button');l.setAttribute('tabindex','0');l.setAttribute('aria-label','Go to the end of the invitation');l.removeAttribute('aria-hidden');l.style.cursor='pointer';l.style.pointerEvents='auto';
-   const toEnd=()=>{scrollTo({top:document.documentElement.scrollHeight,behavior:calm()?'auto':'smooth'});buzz(8)};
-   l.addEventListener('click',toEnd);l.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toEnd()}});
-   let raf=0;const open=()=>{raf=0;const max=document.documentElement.scrollHeight-innerHeight;l.style.setProperty('--o',(max>0?Math.min(1,scrollY/max):0).toFixed(3))};
+   l.setAttribute('role','button');l.setAttribute('tabindex','0');l.setAttribute('aria-label','Go to the blessing');l.removeAttribute('aria-hidden');
+   const bless=$('#photos .lead')||$('#photos .signature-scene');
+   const toBless=()=>{if(bless)bless.scrollIntoView({behavior:calm()?'auto':'smooth',block:'start'});buzz(8)};
+   l.addEventListener('click',toBless);l.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toBless()}});
+   let raf=0;const open=()=>{raf=0;const max=document.documentElement.scrollHeight-innerHeight;l.style.setProperty('--o',(max>0?Math.min(1,scrollY/max):0).toFixed(3));
+     const on=!!bless&&bless.getBoundingClientRect().top<innerHeight*.55;dots.classList.toggle('dl-end',on);on?l.setAttribute('aria-current','true'):l.removeAttribute('aria-current')};
    addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(open)},{passive:true});open();
  }
 
