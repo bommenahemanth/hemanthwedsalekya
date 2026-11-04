@@ -162,8 +162,19 @@
    wrap.innerHTML='<button type="button" class="btn solid ux-share"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.8 7.4-4.4M8.3 13.2l7.4 4.4"/></svg>Share</button>';
    sig.after(wrap);
    wrap.querySelector('button').addEventListener('click',async()=>{
-     const text='Hemanth & Alekya invite you to their wedding celebrations \u00b7 1 \u2013 3 Dec 2026 \ud83d\ude4f';
-     // Link goes in the text: with a separate url field, phones preview the redirect target (github.io) instead.
+     const text=`Hello family & friends! 🌸
+
+You’re warmly invited to celebrate our wedding
+*Hemanth & Alekya* ✨
+
+🎶 Sangeet · Tue, 1st Dec · 6 PM
+💛 Haldi · Wed, 2nd Dec · 10 AM
+💍 *Wedding · Thu, 3rd Dec · 9:47 AM*
+
+📍 Avula Ranch, Celina, TX
+
+Your blessings and presence would mean the world to us. Please view our invitation and RSVP 🙏`;
+     // Link goes in the text so WhatsApp builds its preview card from it.
      if(navigator.share){try{await navigator.share({title:document.title,text:`${text}\n${shareUrl}`});return}catch(err){if(err&&err.name==='AbortError')return}}
      window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n${shareUrl}`)}`,'_blank','noopener');
    });
