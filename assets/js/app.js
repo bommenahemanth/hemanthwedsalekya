@@ -248,8 +248,8 @@ function uaInfo(){const ua=navigator.userAgent,touchMac=/Macintosh/.test(ua)&&na
   return{device,os,browser,app}}
 async function visitGeo(){
   const get=async u=>{const c=new AbortController(),k=setTimeout(()=>c.abort(),3500);try{const r=await fetch(u,{signal:c.signal,cache:'no-store'});return r.ok?await r.json():null}catch{return null}finally{clearTimeout(k)}};
-  const g=await get('https://get.geojs.io/v1/ip/geo.json');if(g&&g.ip)return{ip:g.ip,city:g.city||'',region:g.region||'',country:g.country||'',cc:g.country_code||''};
-  const a=await get('https://ipapi.co/json/');if(a&&a.ip&&!a.error)return{ip:a.ip,city:a.city||'',region:a.region||'',country:a.country_name||'',cc:a.country_code||''};
+  const g=await get('https://get.geojs.io/v1/ip/geo.json');if(g&&g.ip)return{ip:g.ip,city:g.city||'',region:g.region||'',country:g.country||'',cc:g.country_code||'',lat:g.latitude||'',lon:g.longitude||''};
+  const a=await get('https://ipapi.co/json/');if(a&&a.ip&&!a.error)return{ip:a.ip,city:a.city||'',region:a.region||'',country:a.country_name||'',cc:a.country_code||'',lat:a.latitude??'',lon:a.longitude??''};
   const i=await get('https://api.ipify.org?format=json');return{ip:(i&&i.ip)||'',city:'',region:'',country:'',cc:''}}
 function startVisit(){
   const p=new URLSearchParams(location.search),src=(p.get('src')||p.get('utm_source')||'').toLowerCase();
@@ -268,7 +268,8 @@ function startVisit(){
 function endVisit(){
   if(!VISIT.id||!WEDDING.apiUrl||!navigator.sendBeacon)return;
   const nav=performance.getEntriesByType&&performance.getEntriesByType('navigation')[0],loadMs=nav&&nav.loadEventEnd>0?Math.round(nav.loadEventEnd):0;
-  const body=JSON.stringify({action:'visitEnd',visitId:VISIT.id,duration:Math.round((Date.now()-VISIT.t0)/1000),scroll:VISIT.scroll,sections:[...VISIT.sections],actions:VISIT.actions,rsvp:VISIT.rsvp,loadMs,openAfter:VISIT.openAfter});
+  let guest='';try{guest=(rs.saved&&rs.saved.id)||''}catch{}
+  const body=JSON.stringify({action:'visitEnd',visitId:VISIT.id,duration:Math.round((Date.now()-VISIT.t0)/1000),scroll:VISIT.scroll,sections:[...VISIT.sections],actions:VISIT.actions,rsvp:VISIT.rsvp,loadMs,openAfter:VISIT.openAfter,guest});
   try{navigator.sendBeacon(WEDDING.apiUrl,new Blob([body],{type:'text/plain;charset=utf-8'}))}catch{}}
 startVisit();
 addEventListener('pagehide',endVisit);
@@ -588,7 +589,7 @@ function renderAdmin(quiet){const r=admData,s=r.stats,g=s.accommodation.gender;a
   const net=moves.filter(h=>new Date(h.at)>wk).reduce((a,h)=>a+(+hc(h).after)-(+hc(h).before),0);
   const people=new Set(admSessions.map(x=>x.key)).size;
   const kp=[['g',s.people.yes,'Attending'],['a',s.people.maybe,'Tentative'],['r',s.responses.no,'Declined'],['',s.responses.total,'Responses'],['',s.people.adultsYes,'Adults'],['',s.people.kidsYes,'Kids'],['',s.people.plusOnesYes,'Plus-ones'],['',s.accommodation.people,'Need stay'],[s.accommodation.capacity&&s.accommodation.peakNight>s.accommodation.capacity?'r':'',`${s.accommodation.peakNight}${s.accommodation.capacity?` / ${s.accommodation.capacity}`:''}`,'Peak night'],[net<0?'r':net>0?'g':'',`${net>0?'+':net<0?'−':''}${Math.abs(net)}`,'Net change 7d'],['',people,'Unique visitors']];
-  const X=r.extras||{},tabs=[['overview','Overview',''],['guests','Guests',r.rsvps.length],['invites','Invites',(X.invites||[]).length||''],['plan','Rooms & food',''],['checkin','Check-in',''],...(X.photosOpen||(X.photos||[]).length?[['bless','Photos',(X.photos||[]).length||'']]:[]),['history','History',r.history.length],['visits','Analytics',people]];
+  const X=r.extras||{},tabs=[['overview','Overview',''],['guests','Guests',r.rsvps.length],['invites','Invites',(X.invites||[]).length||''],['plan','Rooms & food',''],['checkin','Check-in',''],...(X.photosOpen||(X.photos||[]).length?[['bless','Photos',(X.photos||[]).length||'']]:[]),['history','History',r.history.length],['visits','Analytics',people],['map','Map',new Set(admSessions.map(visitPlace).filter(Boolean)).size||'']];
   const pane=(k,html)=>`<section class="adm-pane" id="adm-${k}" role="tabpanel" aria-labelledby="adm-tab-${k}"${admTab===k?'':' hidden'}>${html}</section>`;
   const ib=(a,cls,label,icon)=>`<button type="button" class="ib ${cls}" data-a="${a}" aria-label="${label}" title="${label}">${icon}</button>`;
   $('#admin').innerHTML=`<div class="adm-wrap${quiet?' quiet':''}"><header class="adm-top"><h2>RSVP dashboard</h2><div class="adm-chips" id="adm-chips">${admChips(r)}</div>
@@ -604,10 +605,10 @@ function renderAdmin(quiet){const r=admData,s=r.stats,g=s.accommodation.gender;a
   ${pane('guests',`<div class="adm-tools"><input type="search" id="adm-q" placeholder="Search name, phone, note" aria-label="Search guests"><select id="adm-st" aria-label="Filter by reply"><option value="">All replies</option><option value="yes">Attending</option><option value="maybe">Tentative</option><option value="no">Not attending</option><option value="withdrawn">Withdrawn</option></select><select id="adm-stay" aria-label="Filter by stay"><option value="">Any stay</option><option value="1">Needs stay</option></select><select id="adm-sort" aria-label="Sort guests"><option value="updatedAt">Recently updated</option><option value="name">Name A–Z</option><option value="party">Largest party</option><option value="arrival">Arriving first</option></select><div class="adm-view" role="group" aria-label="Show guests as">${['cards','table'].map(k=>`<button type="button" data-view="${k}" aria-pressed="${admView===k}">${k==='cards'?'Cards':'Table'}</button>`).join('')}</div></div><div class="${admView==='table'?'adm-tbl-wrap':'gc-list'}" id="adm-rows"></div>`)}
   ${pane('history',`<div class="adm-tools two"><input type="search" id="adm-hq" placeholder="Search by guest name" aria-label="Search history"><select id="adm-ha" aria-label="Filter by change"><option value="">Every change</option><option value="created">New RSVPs</option><option value="updated">Updates</option><option value="withdrawn">Withdrawals</option><option value="admin">Changes by you</option><option value="headcount">Headcount changes</option></select></div><div class="adm-chips left"><span class="ac" id="hg-count"></span><span class="ac">Kept even for deleted RSVPs</span><button type="button" class="ac hg-all" data-a="hg-all">Expand all</button></div><div class="hg-list" id="adm-hist"></div>`)}
   ${pane('invites',invitesPane())}${pane('plan',planPane())}${pane('checkin',checkinPane())}${pane('bless',blessPane())}
-  ${pane('visits',visitsPane())}
+  ${pane('visits',visitsPane())}${pane('map',mapPane())}
   </div>`;
   const keep=admKeep;['q','st','stay','sort','hq','ha'].forEach(k=>{const el=$('#adm-'+k);if(el&&keep[k])el.value=keep[k]});
-  admRows();admHist();hostRender();anRender({noReveal:true});admReveal($('#admin'),quiet)}
+  admRows();admHist();hostRender();anRender({noReveal:true});if(admTab==='map')mapRender();admReveal($('#admin'),quiet)}
 let admTab='overview',admKeep={},admView='cards';
 function guestTable(list,hist){const EV=Object.fromEntries(WEDDING.events.map(e=>[e.id,e]));
   const rows=list.map(x=>{const going=x.status==='yes'||x.status==='maybe',adults=1+x.plusOnes.length,name=`${esc(x.firstName)} ${esc(x.lastName)}`;
@@ -669,6 +670,44 @@ function dayList(days,all){const keys=Object.keys(days).sort(),[a,b]=afRange();i
     out.push({date:start,label:`Week of ${md(start)} – ${md(end)}`,short:md(start),visits:g.reduce((n,x)=>n+x.visits,0),unique:p.size,week:true})}
   return out}
 const hourLabel=h=>`${h%12||12} ${h<12?'am':'pm'}`;
+/* ----- Map: where visitors opened the invitation (city-level, from the IP lookup), with the venue for reference ----- */
+const VENUE={lat:33.3248,lon:-96.7836,label:'Avula Ranch · wedding venue'};
+const visitPlace=s=>s&&s.lat!=null&&s.lon!=null&&s.lat!==''&&s.lon!==''?joinPlace(s.city,s.region,s.cc)||`${(+s.lat).toFixed(1)}, ${(+s.lon).toFixed(1)}`:'';
+const topOf=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${esc(k)} ${v}`).join(' · ')||'—';
+let leafletP=null,admMap=null,mapPts=[];
+function mapPane(){return`<div class="adm-chips left" id="map-chips"></div><div class="adm-map" id="adm-mapbox" role="region" aria-label="Map of where visitors opened the invitation"></div>
+  <p class="legend">Places come from each visitor’s internet connection, so they are city-level and approximate (office networks and VPNs can show another city). The Analytics filters apply here too.</p><div class="adm-tbl-wrap" id="map-list"></div>`}
+// Leaflet is fetched only when the map is opened, and only if the files match these hashes.
+function leaflet(){return leafletP||(leafletP=new Promise((res,rej)=>{
+  const css=document.createElement('link');css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';css.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';css.crossOrigin='';document.head.append(css);
+  const js=document.createElement('script');js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';js.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';js.crossOrigin='';
+  js.onload=()=>res(window.L);js.onerror=()=>{leafletP=null;js.remove();rej(new Error('map'))};document.head.append(js)}))}
+function mapPlaces(list){const P={};list.forEach(s=>{const k=visitPlace(s);if(!k)return;
+    const p=P[k]=P[k]||{label:k,cc:s.cc,lat:0,lon:0,n:0,people:new Set(),dur:0,sent:new Set(),started:new Set(),dev:{},src:{},last:0};
+    p.lat+=+s.lat;p.lon+=+s.lon;p.n++;p.people.add(s.key);p.dur+=s.dur;
+    if(RSTEP[s.rsvp]>=2)p.sent.add(s.key);else if(RSTEP[s.rsvp]===1)p.started.add(s.key);
+    if(s.device)p.dev[s.device]=(p.dev[s.device]||0)+1;if(s.source)p.src[s.source]=(p.src[s.source]||0)+1;p.last=Math.max(p.last,s.t)});
+  return Object.values(P).map(p=>Object.assign(p,{lat:p.lat/p.n,lon:p.lon/p.n,people:p.people.size,sent:p.sent.size,started:p.started.size,avg:Math.round(p.dur/p.n)})).sort((a,b)=>b.people-a.people||b.n-a.n)}
+const mapPopup=p=>`<b>${esc(p.label)}</b><br>${p.people} ${p.people>1?'people':'person'} · ${p.n} visit${p.n>1?'s':''} · avg ${dur(p.avg)}<br>RSVP sent: <b>${p.sent}</b>${p.started?` · started: ${p.started}`:''}<br>${topOf(p.dev)}<br>From: ${topOf(p.src)}<br><small>Last visit ${esc(fmtTime(new Date(p.last).toISOString()))}</small>`;
+async function mapRender(){const box=$('#adm-mapbox');if(!box)return;
+  const all=afApply(admSessions),places=mapPlaces(all),noLoc=all.filter(s=>!visitPlace(s)).length,max=Math.max(1,...places.map(p=>p.people));
+  $('#map-chips').innerHTML=`<span class="ac"><b>${places.length}</b> place${places.length===1?'':'s'}</span><span class="ac"><b>${new Set(places.map(p=>p.cc).filter(Boolean)).size}</b> countr${new Set(places.map(p=>p.cc).filter(Boolean)).size===1?'y':'ies'}</span>${noLoc?`<span class="ac" title="Visits whose location lookup failed"><b>${noLoc}</b> without a location</span>`:''}<span class="ac map-key"><i style="background:#2f7d43"></i>RSVP sent</span><span class="ac map-key"><i style="background:#e0a100"></i>Started RSVP</span><span class="ac map-key"><i style="background:#a3162b"></i>Visited</span><span class="ac map-key"><i style="background:#f1d48a;box-shadow:0 0 0 2px #8a6420"></i>Venue</span>`;
+  $('#map-list').innerHTML=places.length?`<table class="adm-tbl map-tbl"><thead><tr><th>Place</th><th>People</th><th>Visits</th><th>RSVP sent</th><th>Avg time</th><th>Last visit (CT)</th></tr></thead><tbody>${places.map((p,i)=>`<tr data-map-i="${i}"><td>${esc(p.label)}<span class="map-bar" style="width:${Math.max(6,p.people/max*100)}%"></span></td><td><b>${p.people}</b></td><td>${p.n}</td><td>${p.sent}</td><td>${dur(p.avg)}</td><td><small>${esc(fmtTime(new Date(p.last).toISOString()))}</small></td></tr>`).join('')}</tbody></table>`:'<p class="legend">No visits with a location yet.</p>';
+  let L;try{L=await leaflet()}catch{box.innerHTML='<p class="legend">Couldn’t load the map. Check the connection and open this tab again.</p>';return}
+  if(!box.isConnected)return;
+  if(admMap&&admMap.getContainer()!==box){admMap.remove();admMap=null}
+  if(!admMap){admMap=L.map(box,{scrollWheelZoom:false,worldCopyJump:true});
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'}).addTo(admMap);
+    admMap.hxLayer=L.layerGroup().addTo(admMap)}
+  const layer=admMap.hxLayer;layer.clearLayers();
+  // The view has to exist before any marker is added.
+  const pts=places.map(p=>[p.lat,p.lon]).concat([[VENUE.lat,VENUE.lon]]);
+  admMap.invalidateSize();if(pts.length>1)admMap.fitBounds(pts,{padding:[36,36],maxZoom:8});else admMap.setView(pts[0],6);
+  places.forEach(p=>{L.polyline([[p.lat,p.lon],[VENUE.lat,VENUE.lon]],{color:'#a3162b',weight:1,opacity:.3,dashArray:'4 6',interactive:false}).addTo(layer);
+    const fill=p.sent?'#2f7d43':p.started?'#e0a100':'#a3162b';
+    p.m=L.circleMarker([p.lat,p.lon],{radius:7+14*Math.sqrt(p.people/max),color:'#fff',weight:2,fillColor:fill,fillOpacity:.85}).bindTooltip(`${esc(p.label)} · ${p.people}`).bindPopup(mapPopup(p)).addTo(layer)});
+  L.circleMarker([VENUE.lat,VENUE.lon],{radius:8,color:'#8a6420',weight:2,fillColor:'#f1d48a',fillOpacity:1}).bindTooltip('💍 '+VENUE.label).addTo(layer);
+  mapPts=places}
 function visitsPane(){const ranges=[['today','Today'],['7d','7 days'],['30d','30 days'],['all','All time'],['custom','Custom']];
   return`<div class="af" id="af"><div class="af-row"><div class="af-seg" role="group" aria-label="Date range">${ranges.map(([k,l])=>`<button type="button" data-range="${k}" aria-pressed="${AF.range===k}">${l}</button>`).join('')}</div>
    <button type="button" class="ib sm filt" data-a="af-more" aria-label="More filters" title="More filters" aria-expanded="false">${ICO.filter}<i class="badge" id="af-n" hidden></i></button><button type="button" class="ib sm del" data-a="vdel" aria-label="Delete visits" title="Delete visits">${ICO.trash}</button></div>
@@ -910,12 +949,14 @@ async function reloadAdmin(manual){const a=$('#admin'),t0=Date.now();const r=awa
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200)}
 $('#admin').addEventListener('click',async e=>{const a=e.target.closest('[data-a]'),tab=e.target.closest('[data-tab]'),hb=e.target.closest('[data-hist]'),del=e.target.closest('[data-del]'),edit=e.target.closest('[data-edit]');
   if(edit){openEditor(admData.rsvps.find(x=>x.id===edit.dataset.edit));return}
-  if(tab){const order=['overview','guests','invites','plan','checkin','bless','history','visits'],from=order.indexOf(admTab);admTab=tab.dataset.tab;const dir=order.indexOf(admTab)>=from?'r':'l';
+  if(tab){const order=['overview','guests','invites','plan','checkin','bless','history','visits','map'],from=order.indexOf(admTab);admTab=tab.dataset.tab;const dir=order.indexOf(admTab)>=from?'r':'l';
     $('#admin').querySelectorAll('[data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b===tab)));
     $('#admin').querySelectorAll('.adm-pane').forEach(p=>{const on=p.id==='adm-'+admTab;p.hidden=!on;if(on){p.classList.remove('from-l','from-r');void p.offsetWidth;p.classList.add('from-'+dir)}});
+    if(admTab==='map')mapRender();
     const nav=$('#admin .adm-tabs');if(nav&&$('#admin').scrollTop>nav.offsetTop)$('#admin').scrollTo({top:nav.offsetTop,behavior:'smooth'});return}
   const th=e.target.closest('.adm-tbl th');if(th&&th.textContent.trim()){sortTable(th);return}
   const lv=e.target.closest('[data-dim-k]');if(lv){AF.dims[lv.dataset.dimK]=lv.dataset.dimV;anRender();toast(`Showing ${DIM[lv.dataset.dimK].l.toLowerCase()}: ${lv.dataset.dimV}`);return}
+  const mp=e.target.closest('[data-map-i]');if(mp&&admMap){const p=mapPts[+mp.dataset.mapI];if(p){admMap.flyTo([p.lat,p.lon],Math.max(admMap.getZoom(),7));p.m.openPopup();$('#adm-mapbox').scrollIntoView({block:'nearest',behavior:'smooth'})}return}
   const rg=e.target.closest('[data-range]');if(rg){AF.range=rg.dataset.range;setCollapse($('#af-custom'),AF.range==='custom');anRender();return}
   const ud=e.target.closest('[data-undim]');if(ud){delete AF.dims[ud.dataset.undim];anRender();return}
   if(e.target.closest('[data-unwho]')){AF.who='';anRender();return}
