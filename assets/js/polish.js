@@ -156,13 +156,8 @@
 
  /* ---------- Share the invitation ---------- */
  const shareUrl='https://bommenahemanth.github.io/hemanthwedsalekya/';
- const sig=$('#photos .ux-kolam')||$('#photos .signature-scene');
- if(sig){
-   const wrap=document.createElement('div');wrap.className='ux-share-wrap';
-   wrap.innerHTML='<button type="button" class="btn solid ux-share"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.8 7.4-4.4M8.3 13.2l7.4 4.4"/></svg>Share</button>';
-   sig.after(wrap);
-   wrap.querySelector('button').addEventListener('click',async()=>{
-     const text=`Hello family & friends! 🌸
+ // Sent by both the Share button and, as the caption, with the downloaded card.
+ const inviteMsg=`Hello family & friends! 🌸
 
 You’re warmly invited to celebrate our wedding
 *Hemanth & Alekya* ✨
@@ -173,10 +168,17 @@ You’re warmly invited to celebrate our wedding
 
 📍 Avula Ranch, Celina, TX
 
-Your blessings and presence would mean the world to us. Please view our invitation and RSVP 🙏`;
+Your blessings and presence would mean the world to us. Please view our invitation and RSVP 🙏
+${shareUrl}`;
+ const sig=$('#photos .ux-kolam')||$('#photos .signature-scene');
+ if(sig){
+   const wrap=document.createElement('div');wrap.className='ux-share-wrap';
+   wrap.innerHTML='<button type="button" class="btn solid ux-share"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.8 7.4-4.4M8.3 13.2l7.4 4.4"/></svg>Share</button>';
+   sig.after(wrap);
+   wrap.querySelector('button').addEventListener('click',async()=>{
      // Link goes in the text so WhatsApp builds its preview card from it.
-     if(navigator.share){try{await navigator.share({title:document.title,text:`${text}\n${shareUrl}`});return}catch(err){if(err&&err.name==='AbortError')return}}
-     window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n${shareUrl}`)}`,'_blank','noopener');
+     if(navigator.share){try{await navigator.share({title:document.title,text:inviteMsg});return}catch(err){if(err&&err.name==='AbortError')return}}
+     window.open(`https://wa.me/?text=${encodeURIComponent(inviteMsg)}`,'_blank','noopener');
    });
  }
 
@@ -244,7 +246,7 @@ Your blessings and presence would mean the world to us. Please view our invitati
      if(!matchMedia('(pointer:coarse)').matches||!navigator.canShare)return;
      e.preventDefault();
      try{const blob=await (await fetch(card.href)).blob(),file=new File([blob],card.download,{type:'image/jpeg'});
-       if(navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Hemanth & Alekya · Wedding card'});return}}
+       if(navigator.canShare({files:[file]})){await navigator.share({files:[file],text:inviteMsg});return}}
      catch(err){if(err&&err.name==='AbortError')return}
      location.href=card.href});
    const steps=$('#photos .ux-steps')||share,fab=$('#fab');

@@ -134,7 +134,7 @@
 
  /* "More" button at the bottom left: goes to the next section, hides on the last one */
  const down=document.createElement('button');down.type='button';down.className='dl-down';down.setAttribute('aria-label','Scroll down to see more');
- down.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg><span>More</span>';body.append(down);
+ down.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';body.append(down);
  const secs=()=>$$('main > section').filter(s=>s.offsetHeight>200);
  const nextSec=()=>secs().find(s=>s.getBoundingClientRect().top>90);
  let dRaf=0;const dUpdate=()=>{dRaf=0;const ready=body.dataset.openingState==='complete',n=nextSec(),nearEnd=innerHeight+scrollY>=document.documentElement.scrollHeight-40;down.classList.toggle('show',ready&&!!n&&!nearEnd&&$('#admin')?.hidden!==false)};
