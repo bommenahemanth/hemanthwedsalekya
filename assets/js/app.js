@@ -19,7 +19,7 @@ const WEDDING={
   // Drive times checked on Google Maps (Sat 31 Oct 2026, light traffic).
   airports:[{code:'DFW',name:'Dallas Fort Worth International',origin:'DFW Airport, TX',miles:45,mins:50},{code:'DAL',name:'Dallas Love Field',origin:'Dallas Love Field, Dallas, TX',miles:46,mins:55}],
   // Slideshow photos after the first (inline) one; loaded only as they come up.
-  photos:['photos/02.webp','photos/03.jpg','photos/04.webp','photos/05.webp','photos/06.webp'],
+  photos:['photos/03.jpg','photos/04.webp','photos/06.webp','photos/05.webp','photos/02.webp'],
   // Set to true (and PHOTOS_OPEN=yes on the backend) to let guests share photos.
   photoDrop:false,
   music:{src:'music/pipa-says.m4a',credit:'Music: “What the Pipa Says” (琵琶語) by Lin Hai, © 2003 Wind Music International',link:'https://open.spotify.com/track/0XeklzlYWRCqgplYDVitZl'},
@@ -749,7 +749,7 @@ const xapi=async(kind,body={})=>{const r=await api(Object.assign({action:'adminE
 const digits10=p=>String(p||'').replace(/\D/g,'').slice(-10);
 const firstOf=n=>String(n||'').trim().split(/\s+/)[0]||'there';
 const waLink=(phone,text)=>`https://wa.me/${String(phone).replace(/\D/g,'')}?text=${encodeURIComponent(text)}`;
-const nudgeText=n=>`Hi ${firstOf(n)}! Hemanth & Alekya here. We’d love to celebrate with you (1 – 3 Dec, Celina TX). Could you let us know if you can make it? It takes a minute: https://is.gd/hemwedsalekya`;
+const nudgeText=n=>`Hi ${firstOf(n)}! Hemanth & Alekya here. We’d love to celebrate with you (1 – 3 Dec, Celina TX). Could you let us know if you can make it? It takes a minute: https://bommenahemanth.github.io/hemanthwedsalekya/`;
 const thanksText=n=>`Dear ${firstOf(n)}, thank you so much for celebrating with us and for all your blessings 🙏 It meant the world to us. Our wedding site: ${SITE}\n\nWith love, Hemanth & Alekya`;
 const going=x=>x.status==='yes'||x.status==='maybe',partyOf=x=>1+x.plusOnes.length+(+x.kids||0);
 function matchInvite(inv){const d=digits10(inv.phone),k=nameKey(inv.name);return admData.rsvps.find(x=>(d&&digits10(x.phone)===d)||nameKey(x.firstName+' '+x.lastName)===k)}

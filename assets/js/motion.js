@@ -168,7 +168,7 @@ function initWeddingFlowers({art,root,body,reduced}){
    height=Math.max(1,box.height||innerHeight||root.clientHeight||844);
    dpr=Math.min(devicePixelRatio||1,1.5);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);
    if(ctx)ctx.setTransform(dpr,0,0,dpr,0,0);
-   const count=width<350?9:width<390?12:13;
+   const count=width<350?8:width<390?11:12;
    if(sprites.length!==count){sprites.length=0;for(let i=0;i<count;i++){const q=(i+.5)/count,key=specs.find(([,limit])=>q<limit)[0],sprite={key};place(sprite,true);sprites.push(sprite)}}
    if(quiet&&ctx)ctx.clearRect(0,0,width,height);
  }
