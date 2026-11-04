@@ -1445,7 +1445,8 @@ html.locked .ux-progress,html.locked .ux-dots{opacity:0!important;pointer-events
 .ux-steps.done .ux-foot{animation:ux-foot-glow 3.2s ease-in-out infinite;animation-delay:calc(var(--i)*.22s)}
 @keyframes ux-foot-glow{50%{filter:drop-shadow(0 0 7px rgba(255,186,61,.85))}}
 /* Small QR button; tapping opens a big QR on a pure white screen. */
-.ux-share-wrap{flex-wrap:wrap;gap:10px;justify-content:flex-start;padding-left:0;margin-bottom:76px}
+.ux-share-wrap{flex-wrap:wrap;gap:10px;justify-content:flex-start;padding-left:0;margin-bottom:calc(max(18px,env(safe-area-inset-bottom)) - 33px)}
+@media(max-width:374px){.ux-share-wrap{gap:8px}.ux-share-wrap .btn{padding-left:12px;padding-right:12px}}
 .ux-qr-btn{display:inline-flex;align-items:center;gap:7px}
 .ux-qr-btn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round}
 .ux-qr-full{position:fixed;inset:0;z-index:130;display:grid;place-items:center;padding:24px;background:#fff;opacity:0;transition:opacity .3s ease}
