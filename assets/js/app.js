@@ -672,19 +672,43 @@ function dayList(days,all){const keys=Object.keys(days).sort(),[a,b]=afRange();i
 const hourLabel=h=>`${h%12||12} ${h<12?'am':'pm'}`;
 /* ----- Map: where visitors opened the invitation (city-level, from the IP lookup), with the venue for reference ----- */
 const VENUE={lat:33.3248,lon:-96.7836,label:'Avula Ranch · wedding venue'};
-const visitPlace=s=>s&&s.lat!=null&&s.lon!=null&&s.lat!==''&&s.lon!==''?joinPlace(s.city,s.region,s.cc)||`${(+s.lat).toFixed(1)}, ${(+s.lon).toFixed(1)}`:'';
+// Visits recorded without coordinates (older ones, or when the IP lookup gave only a city) are placed by city name.
+let geoCache={};try{geoCache=JSON.parse(localStorage.getItem('hx-geo')||'{}')}catch{}
+const cityOf=s=>joinPlace(s.city,s.region,s.cc);
+const coordsOf=s=>s.lat!=null&&s.lat!==''&&s.lon!=null&&s.lon!==''?[+s.lat,+s.lon]:geoCache[cityOf(s)]||null;
+const visitPlace=s=>{const c=s&&coordsOf(s);return c?cityOf(s)||`${c[0].toFixed(1)}, ${c[1].toFixed(1)}`:''};
+async function geoFill(list){const todo={};list.forEach(s=>{const k=cityOf(s);if(s.city&&!coordsOf(s)&&!(k in geoCache))todo[k]=s});
+  const keys=Object.keys(todo).slice(0,15);
+  for(const [i,k] of keys.entries()){const s=todo[k];if(i)await new Promise(r=>setTimeout(r,1100));
+    try{const q=new URLSearchParams({format:'json',limit:'1',city:s.city,state:s.region||'',countrycodes:(s.cc||'').toLowerCase()});
+      const r=await fetch('https://nominatim.openstreetmap.org/search?'+q);const hit=r.ok?(await r.json())[0]:null;
+      geoCache[k]=hit?[Math.round(hit.lat*100)/100,Math.round(hit.lon*100)/100]:0}catch{}}
+  try{localStorage.setItem('hx-geo',JSON.stringify(geoCache))}catch{}
+  return keys.length>0}
 const topOf=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([k,v])=>`${esc(k)} ${v}`).join(' · ')||'—';
 let leafletP=null,admMap=null,mapPts=[];
 function mapPane(){return`<div class="adm-chips left" id="map-chips"></div><div class="adm-map" id="adm-mapbox" role="region" aria-label="Map of where visitors opened the invitation"></div>
-  <p class="legend">Places come from each visitor’s internet connection, so they are city-level and approximate (office networks and VPNs can show another city). The Analytics filters apply here too.</p><div class="adm-tbl-wrap" id="map-list"></div>`}
+  <p class="legend">Places come from each visitor’s internet connection, so they are city-level and approximate (office networks and VPNs can show another city). The Analytics filters apply here too. Tap a bubble or a row to see each visitor’s journey.</p><div id="map-detail"></div><div class="adm-tbl-wrap" id="map-list"></div>`}
+const JSTEPS=[['opened','Opened'],['events','Events'],['rsvp','RSVP form'],['photos','Photos']];
+// Every visit from one place, grouped by person: when, how, how far they got and what they tapped.
+function mapDetail(i){const p=mapPts[i],el=$('#map-detail');if(!p||!el)return;
+  const people={};p.ss.forEach(s=>{(people[s.key]=people[s.key]||[]).push(s)});
+  const card=vs=>{vs.sort((a,b)=>a.t-b.t);const best=vs.reduce((m,s)=>(RSTEP[s.rsvp]||0)>(RSTEP[m]||0)?s.rsvp:m,'');
+    return`<div class="mj-person"><div class="mj-head"><code>${esc((vs[0].key||'').replace(/^v:/,'').slice(0,6))}</code> ${vs.length>1?`<span class="tag-chip ret">${vs.length} visits</span>`:''}${best?`<span class="pill ${best==='started'?'maybe':esc(best)}">${best==='started'?'Started RSVP':'RSVP: '+(STL[best]||'Sent')}</span>`:'<span class="legend">No RSVP yet</span>'}</div>
+    <ol class="mj-visits">${vs.map(s=>`<li><div class="mj-when"><b>${esc(fmtTime(new Date(s.t).toISOString()))}</b> · ${esc([s.device,s.os,s.browser].filter(v=>v&&v!=='Other').join(' · ')||'—')} · <span class="tag-chip src">${esc(s.source||'—')}</span></div>
+      <div class="mj-track">${JSTEPS.map(([k,l])=>`<span class="${s.sec.has(k)?'on':''}">${l}</span>`).join('')}<span class="${RSTEP[s.rsvp]>=2?'on':''}">RSVP sent</span></div>
+      <div class="mj-stats">${dur(s.dur)} on the page · scrolled ${s.scroll||0}%${s.open?` · opened the envelope after ${s.open}s`:''}${s.n>1?` · ${s.n} loads`:''}</div>
+      ${Object.keys(s.act).filter(k=>s.act[k]>0&&!/^(scroll_|saw_)/.test(k)).map(k=>`<span class="tag-chip act">${esc(evLabel(k))}${s.act[k]>1?` ×${s.act[k]}`:''}</span>`).join('')}</li>`).join('')}</ol></div>`};
+  el.innerHTML=`<div class="panel mj"><h3>${esc(p.label)} <small>${p.people} ${p.people>1?'people':'person'} · ${p.n} visit${p.n>1?'s':''}</small><button type="button" class="ib sm" data-a="mj-close" aria-label="Close" title="Close">✕</button></h3>${Object.values(people).sort((a,b)=>b.length-a.length).map(card).join('')}</div>`;
+  el.scrollIntoView({block:'nearest',behavior:'smooth'})}
 // Leaflet is fetched only when the map is opened, and only if the files match these hashes.
 function leaflet(){return leafletP||(leafletP=new Promise((res,rej)=>{
   const css=document.createElement('link');css.rel='stylesheet';css.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';css.integrity='sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';css.crossOrigin='';document.head.append(css);
   const js=document.createElement('script');js.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';js.integrity='sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';js.crossOrigin='';
   js.onload=()=>res(window.L);js.onerror=()=>{leafletP=null;js.remove();rej(new Error('map'))};document.head.append(js)}))}
 function mapPlaces(list){const P={};list.forEach(s=>{const k=visitPlace(s);if(!k)return;
-    const p=P[k]=P[k]||{label:k,cc:s.cc,lat:0,lon:0,n:0,people:new Set(),dur:0,sent:new Set(),started:new Set(),dev:{},src:{},last:0};
-    p.lat+=+s.lat;p.lon+=+s.lon;p.n++;p.people.add(s.key);p.dur+=s.dur;
+    const p=P[k]=P[k]||{label:k,cc:s.cc,lat:0,lon:0,n:0,people:new Set(),dur:0,sent:new Set(),started:new Set(),dev:{},src:{},last:0,ss:[]};
+    const c=coordsOf(s);p.lat+=c[0];p.lon+=c[1];p.n++;p.people.add(s.key);p.dur+=s.dur;p.ss.push(s);
     if(RSTEP[s.rsvp]>=2)p.sent.add(s.key);else if(RSTEP[s.rsvp]===1)p.started.add(s.key);
     if(s.device)p.dev[s.device]=(p.dev[s.device]||0)+1;if(s.source)p.src[s.source]=(p.src[s.source]||0)+1;p.last=Math.max(p.last,s.t)});
   return Object.values(P).map(p=>Object.assign(p,{lat:p.lat/p.n,lon:p.lon/p.n,people:p.people.size,sent:p.sent.size,started:p.started.size,avg:Math.round(p.dur/p.n)})).sort((a,b)=>b.people-a.people||b.n-a.n)}
@@ -703,11 +727,12 @@ async function mapRender(){const box=$('#adm-mapbox');if(!box)return;
   // The view has to exist before any marker is added.
   const pts=places.map(p=>[p.lat,p.lon]).concat([[VENUE.lat,VENUE.lon]]);
   admMap.invalidateSize();if(pts.length>1)admMap.fitBounds(pts,{padding:[36,36],maxZoom:8});else admMap.setView(pts[0],6);
-  places.forEach(p=>{L.polyline([[p.lat,p.lon],[VENUE.lat,VENUE.lon]],{color:'#a3162b',weight:1,opacity:.3,dashArray:'4 6',interactive:false}).addTo(layer);
+  places.forEach((p,i)=>{L.polyline([[p.lat,p.lon],[VENUE.lat,VENUE.lon]],{color:'#a3162b',weight:1,opacity:.3,dashArray:'4 6',interactive:false}).addTo(layer);
     const fill=p.sent?'#2f7d43':p.started?'#e0a100':'#a3162b';
-    p.m=L.circleMarker([p.lat,p.lon],{radius:7+14*Math.sqrt(p.people/max),color:'#fff',weight:2,fillColor:fill,fillOpacity:.85}).bindTooltip(`${esc(p.label)} · ${p.people}`).bindPopup(mapPopup(p)).addTo(layer)});
+    p.m=L.circleMarker([p.lat,p.lon],{radius:7+14*Math.sqrt(p.people/max),color:'#fff',weight:2,fillColor:fill,fillOpacity:.85}).bindTooltip(`${esc(p.label)} · ${p.people}`).bindPopup(mapPopup(p)).on('click',()=>mapDetail(i)).addTo(layer)});
   L.circleMarker([VENUE.lat,VENUE.lon],{radius:8,color:'#8a6420',weight:2,fillColor:'#f1d48a',fillOpacity:1}).bindTooltip('💍 '+VENUE.label).addTo(layer);
-  mapPts=places}
+  mapPts=places;
+  if(await geoFill(all)&&admTab==='map')mapRender()}
 function visitsPane(){const ranges=[['today','Today'],['7d','7 days'],['30d','30 days'],['all','All time'],['custom','Custom']];
   return`<div class="af" id="af"><div class="af-row"><div class="af-seg" role="group" aria-label="Date range">${ranges.map(([k,l])=>`<button type="button" data-range="${k}" aria-pressed="${AF.range===k}">${l}</button>`).join('')}</div>
    <button type="button" class="ib sm filt" data-a="af-more" aria-label="More filters" title="More filters" aria-expanded="false">${ICO.filter}<i class="badge" id="af-n" hidden></i></button><button type="button" class="ib sm del" data-a="vdel" aria-label="Delete visits" title="Delete visits">${ICO.trash}</button></div>
@@ -956,7 +981,8 @@ $('#admin').addEventListener('click',async e=>{const a=e.target.closest('[data-a
     const nav=$('#admin .adm-tabs');if(nav&&$('#admin').scrollTop>nav.offsetTop)$('#admin').scrollTo({top:nav.offsetTop,behavior:'smooth'});return}
   const th=e.target.closest('.adm-tbl th');if(th&&th.textContent.trim()){sortTable(th);return}
   const lv=e.target.closest('[data-dim-k]');if(lv){AF.dims[lv.dataset.dimK]=lv.dataset.dimV;anRender();toast(`Showing ${DIM[lv.dataset.dimK].l.toLowerCase()}: ${lv.dataset.dimV}`);return}
-  const mp=e.target.closest('[data-map-i]');if(mp&&admMap){const p=mapPts[+mp.dataset.mapI];if(p){admMap.flyTo([p.lat,p.lon],Math.max(admMap.getZoom(),7));p.m.openPopup();$('#adm-mapbox').scrollIntoView({block:'nearest',behavior:'smooth'})}return}
+  if(a&&a.dataset.a==='mj-close'){$('#map-detail').innerHTML='';return}
+  const mp=e.target.closest('[data-map-i]');if(mp&&admMap){const i=+mp.dataset.mapI,p=mapPts[i];if(p){admMap.flyTo([p.lat,p.lon],Math.max(admMap.getZoom(),7));p.m.openPopup();mapDetail(i)}return}
   const rg=e.target.closest('[data-range]');if(rg){AF.range=rg.dataset.range;setCollapse($('#af-custom'),AF.range==='custom');anRender();return}
   const ud=e.target.closest('[data-undim]');if(ud){delete AF.dims[ud.dataset.undim];anRender();return}
   if(e.target.closest('[data-unwho]')){AF.who='';anRender();return}
