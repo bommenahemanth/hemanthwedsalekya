@@ -23,6 +23,8 @@ const WEDDING={
   // Set to true (and PHOTOS_OPEN=yes on the backend) to let guests share photos.
   photoDrop:false,
   music:{src:'music/pipa-says.m4a',credit:'Music: “What the Pipa Says” (琵琶語) by Lin Hai, © 2003 Wind Music International',link:'https://open.spotify.com/track/0XeklzlYWRCqgplYDVitZl'},
+  // Set to the stream URL when ready; empty shows “Coming soon” near the end of the page.
+  liveStream:'',
   events:[
     {id:'sangeet',short:'Sangeet',art:'cocktails',d:1,m:12,t:'18:00',hrs:4,icon:'music',accent:'#8e2453',title:'Sangeet / Cocktail Party',te:'సంగీత్',note:'An evening of music, dance and cheers. Come ready to celebrate!'},
     {id:'haldi',short:'Haldi',art:'haldi',d:2,m:12,t:'10:00',hrs:3,icon:'haldi',accent:'#e0a100',title:'Haldi',te:'హల్దీ · పసుపు',note:'Turmeric, laughter and a golden glow. Wear something yellow!'},
@@ -32,6 +34,7 @@ const WEDDING={
 /* ===================================== */
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],root=document.documentElement,body=document.body,reduce=matchMedia('(prefers-reduced-motion:reduce)').matches;
 window.HX_SCHEDULE=Object.freeze({year:WEDDING.year,tz:WEDDING.tz,events:WEDDING.events.map(({id,d,m,t,hrs})=>({id,d,m,t,hrs}))});
+window.HX_LIVE=WEDDING.liveStream;
 // Themed replacements for the browser's confirm()/alert() boxes; both resolve when the guest answers.
 function ask(msg,{title='Are you sure?',ok='OK',cancel='Cancel',info=false,notes=null}={}){const d=$('#ux-ask');if(!d||!d.showModal)return Promise.resolve(info||window.confirm(msg));$('#ux-ask-title').textContent=title;$('#ux-ask-msg').textContent=msg;$('#ux-ask-notes').hidden=!notes;$('#ux-ask-note').value='';$('#ux-ask-chips').innerHTML=(notes||[]).map(t=>`<button type="button">${esc(t)}</button>`).join('');$('#ux-ask-ok').textContent=ok;$('#ux-ask-cancel').textContent=cancel;$('#ux-ask-cancel').hidden=info;d.classList.toggle('info',info);d.returnValue='';d.showModal();$('#ux-ask-ok').focus();return new Promise(res=>d.addEventListener('close',()=>res(d.returnValue==='ok'),{once:true}))}
 function tell(msg,title='Something went wrong'){return ask(msg,{title,ok:'OK',info:true})}
@@ -222,6 +225,35 @@ async function api(payload,retry=1){
 }
 const store={get(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
 
+/* ----- Wedding-day mode: on event days today's event comes first, with directions and a self check-in.
+   Preview any moment with ?day=2026-12-03T09:00 (Central). ----- */
+{const q=new URLSearchParams(location.search).get('day'),t0=Date.now(),base=q&&Date.parse(q.length<=16?q+':00-06:00':q);
+ const now=()=>base?base+(Date.now()-t0):Date.now();
+ const pick=()=>{const t=now();for(const[i,e]of WEDDING.events.entries()){const s=+startOf(e),end=+endOf(e);
+   if(t>=s-18*36e5&&t<=end+2*36e5)return{e,i,phase:t<s?'soon':t<=end?'now':'done',left:s-t}}return null};
+ if(pick()){
+  const box=document.createElement('div');box.className='today-card';box.id='today';$('#tl').before(box);
+  const paint=()=>{const p=pick();if(!p){box.remove();return}const{e,i,phase,left}=p,done=(()=>{try{return localStorage.getItem('hx-ci-'+e.id)}catch{return null}})();
+    const h=Math.floor(left/36e5),m=Math.round(left%36e5/6e4),when=phase==='soon'?`Starts at ${time12(e.t)} · in ${h?h+'h ':''}${m}m`:phase==='now'?'Happening now 🎉':'Just finished · thank you for celebrating with us';
+    const canCheck=phase==='now'||(phase==='soon'&&left<=3*36e5);
+    box.innerHTML=`<p class="eyebrow">Today · ${esc(weekday(e))}, ${e.d} ${MON[e.m-1].slice(0,3)}</p><h3>${esc(e.title)}</h3><p class="today-when">${esc(when)}</p><p class="today-where">${pinSvg}${esc(placeOf(e))}</p>
+      <div class="today-acts"><a class="btn solid" href="${esc(mapHref(mapQuery(e)))}" target="_blank" rel="noopener noreferrer" data-day="directions">Directions</a>${canCheck&&!done?'<button type="button" class="btn" data-day="open">I’m here · check in</button>':''}</div>
+      ${done?`<p class="today-msg ok">✓ Checked in · ${esc(done)}</p>`:''}
+      <form class="today-ci" hidden><label class="sr" for="today-ph">Your WhatsApp number</label><div class="today-row"><select name="cc" aria-label="Country code"><option value="+1">+1</option><option value="+91">+91</option></select><input id="today-ph" name="phone" inputmode="tel" autocomplete="tel-national" placeholder="WhatsApp number you RSVP’d with" required></div><button class="btn solid" type="submit">Check in</button><p class="today-msg" role="status"></p></form>`;
+    $$('#tl-list .tl-item').forEach((li,k)=>li.classList.toggle('tl-today',k===i))};
+  paint();setInterval(()=>{if(!box.contains(document.activeElement))paint()},60e3);
+  box.addEventListener('click',e=>{const b=e.target.closest('[data-day]');if(!b)return;track('day_'+b.dataset.day);
+    if(b.dataset.day==='open'){const f=box.querySelector('.today-ci');f.hidden=false;b.hidden=true;f.phone.focus()}});
+  box.addEventListener('submit',async ev=>{ev.preventDefault();const f=ev.target,msg=f.querySelector('.today-msg'),btn=f.querySelector('[type=submit]'),p=pick();if(!p)return;
+    btn.disabled=true;msg.className='today-msg';msg.textContent='Checking you in…';
+    try{const r=await api({action:'selfCheckin',event:p.e.id,phone:{cc:f.cc.value,number:f.phone.value}});
+      if(r.ok){const who=`${r.firstName||'Welcome'}${r.party>1?` · party of ${r.party}`:''}`;try{localStorage.setItem('hx-ci-'+p.e.id,who)}catch{}track('day_checked_in');
+        msg.className='today-msg ok';msg.textContent=r.already?`You’re already checked in, ${r.firstName}. Enjoy!`:`Welcome, ${r.firstName}! You’re checked in 🎉`;setTimeout(paint,2500)}
+      else msg.textContent=r.error==='not_found'?'We couldn’t find an RSVP with that number. Please check it, or find Hemanth or Alekya’s family at the entrance.':r.error==='closed'?'Check-in opens a little before each event.':r.error==='rate_limited'?'Too many tries. Please wait a few minutes.':'Something went wrong. Please try again.'}
+    catch(err){msg.textContent=errText(err)}finally{btn.disabled=false}});
+  new MutationObserver((_,o)=>{if(body.classList.contains('opening-complete')){o.disconnect();setTimeout(()=>box.scrollIntoView({behavior:reduce?'auto':'smooth',block:'center'}),700)}}).observe(body,{attributes:true,attributeFilter:['class']});
+ }
+}
 function onOpened(){
   try{localStorage.removeItem('hx-music')}catch{}
   if(!musicBtn.hidden){
@@ -631,7 +663,7 @@ function guestTable(list,hist){const EV=Object.fromEntries(WEDDING.events.map(e=
   return`<table class="adm-tbl guests"><thead><tr><th>Guest</th><th>Reply</th><th>Party</th><th>Dates</th><th>Stay</th><th>Events</th><th>Plus-ones</th><th>WhatsApp</th><th>Note</th><th>Replied (CT)</th><th>Updated (CT)</th><th></th></tr></thead><tbody>${rows||'<tr><td colspan="12" class="adm-empty">No RSVPs match.</td></tr>'}</tbody></table>`}
 const dur=s=>!s?'—':s>=3600?`${Math.floor(s/3600)}h ${Math.round(s%3600/60)}m`:s>=60?`${Math.floor(s/60)}m ${s%60}s`:`${s}s`;
 const SEC={opened:'Opened',events:'Events',rsvp:'RSVP',photos:'Photos'};
-const EVL={envelope_open:'Opened the envelope',music_on:'Turned music on',music_off:'Turned music off',qr:'Opened the QR code',share:'Tapped Share',card_download:'Downloaded the wedding card',map:'Opened the map',calendar_apple:'Added to Apple Calendar',calendar_google:'Added to Google Calendar',calendar_google_all:'Google: added all events',calendar_google_one:'Google: added one event',event_calendar:'Opened an event’s calendar',whatsapp:'Tapped a WhatsApp link',call:'Tapped a call link',text:'Tapped a text link',email:'Tapped an email link',find_open:'Opened “Find my RSVP”',find_ok:'Found their RSVP',find_fail:'Couldn’t find their RSVP',find_whatsapp:'Messaged Hemanth after not finding it',rsvp_button:'Tapped the RSVP button',rsvp_start:'Started the RSVP form',rsvp_yes:'Chose “Attending”',rsvp_maybe:'Chose “Tentative”',rsvp_no:'Chose “Can’t come”',rsvp_error:'Hit a form error',rsvp_sent:'Sent or updated an RSVP',rsvp_edit:'Opened “Update”',rsvp_withdraw:'Tapped “Withdraw”',photo_open:'Opened a photo',photo_next:'Swiped photos in full view',photo_dot:'Tapped photo dots',scroll_25:'Scrolled a quarter',scroll_50:'Scrolled halfway',scroll_75:'Scrolled three quarters',scroll_100:'Reached the end',saw_events:'Saw the events',saw_rsvp:'Saw the RSVP form',saw_photos:'Saw the photos',photo_upload:'Shared photos'};
+const EVL={envelope_open:'Opened the envelope',music_on:'Turned music on',music_off:'Turned music off',qr:'Opened the QR code',share:'Tapped Share',card_download:'Downloaded the wedding card',day_directions:'Wedding day: opened directions',day_open:'Wedding day: opened check-in',day_checked_in:'Wedding day: checked in',map:'Opened the map',calendar_apple:'Added to Apple Calendar',calendar_google:'Added to Google Calendar',calendar_google_all:'Google: added all events',calendar_google_one:'Google: added one event',event_calendar:'Opened an event’s calendar',whatsapp:'Tapped a WhatsApp link',call:'Tapped a call link',text:'Tapped a text link',email:'Tapped an email link',find_open:'Opened “Find my RSVP”',find_ok:'Found their RSVP',find_fail:'Couldn’t find their RSVP',find_whatsapp:'Messaged Hemanth after not finding it',rsvp_button:'Tapped the RSVP button',rsvp_start:'Started the RSVP form',rsvp_yes:'Chose “Attending”',rsvp_maybe:'Chose “Tentative”',rsvp_no:'Chose “Can’t come”',rsvp_error:'Hit a form error',rsvp_sent:'Sent or updated an RSVP',rsvp_edit:'Opened “Update”',rsvp_withdraw:'Tapped “Withdraw”',photo_open:'Opened a photo',photo_next:'Swiped photos in full view',photo_dot:'Tapped photo dots',scroll_25:'Scrolled a quarter',scroll_50:'Scrolled halfway',scroll_75:'Scrolled three quarters',scroll_100:'Reached the end',saw_events:'Saw the events',saw_rsvp:'Saw the RSVP form',saw_photos:'Saw the photos',photo_upload:'Shared photos'};
 const evLabel=k=>EVL[k]||(k.startsWith('event_')?'Tapped event: '+((WEDDING.events.find(e=>'event_'+e.id===k)||{}).title||k.slice(6)):k.startsWith('contact_')?'Opened contact: '+k.slice(8).replace(/^./,c=>c.toUpperCase()):k.replace(/_/g,' '));
 const PAL=['#a3162b','#c9a24a','#2f7d43','#2c5d8a','#8e2453','#e0a100','#5b3a8a','#d9480f','#6b3c12','#9b8f80'];
 function columns(vals,labels,title){const max=Math.max(1,...vals);return`<div class="hours" style="grid-template-columns:repeat(${vals.length},1fr)">${vals.map((n,i)=>`<i style="height:${n/max*100}%;--i:${i}" title="${esc(labels[i])} · ${n} ${title}"></i>`).join('')}</div>`}
