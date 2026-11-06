@@ -968,7 +968,7 @@ $('#admin').addEventListener('input',e=>{const t=e.target;if(t.id==='inv-q'){HX.
   if(t.dataset.roomBeds){const r=R.rooms.find(v=>v.id===t.dataset.roomBeds);if(r){r.beds=Math.max(0,Math.min(50,+t.value||0));roomsSave()}}});
 $('#admin').addEventListener('change',e=>{const t=e.target;if(!t.dataset.assign)return;const R=admData.extras.rooms;if(t.value)R.assign[t.dataset.assign]=t.value;else delete R.assign[t.dataset.assign];planRender();roomsSave()});
 const ACT={created:'Sent RSVP',updated:'Updated',withdrawn:'Withdrew','edited by admin':'Edited by you','added by admin':'Added by you','deleted by admin':'Deleted by you'};
-const FLD={headcount:'Headcount',firstName:'First name',lastName:'Last name',plusOnes:'Plus-ones',kids:'Kids',accommodation:'Stay',arrival:'Arriving',departure:'Leaving',events:'Events',travel:'Travel',flight:'Flight',food:'Food',message:'Note',status:'Reply',gender:'Gender',phone:'WhatsApp',email:'Email'};
+const FLD={headcount:'Headcount',firstName:'First name',lastName:'Last name',plusOnes:'Extra guests',kids:'Kids',accommodation:'Stay',arrival:'Arriving',departure:'Leaving',events:'Events',travel:'Travel',flight:'Flight',food:'Food',message:'Note',status:'Reply',gender:'Gender',phone:'WhatsApp',email:'Email'};
 const actTone=a=>/delet|withdr/.test(a)?'r':/creat|add/.test(a)?'g':'a';
 const EVT=Object.fromEntries(WEDDING.events.map(e=>[e.title,e]));
 const evWhen=e=>`${weekday(e).slice(0,3)} ${e.d} ${MON[e.m-1].slice(0,3)} · ${time12(e.t)}`;
