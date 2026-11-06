@@ -438,13 +438,13 @@ function fieldError(k,m){const el=form.querySelector(`[data-err="${k}"]`);if(!el
 F.phone.addEventListener('blur',()=>{if(F.phone.value)fieldError('phone',phoneError(phoneOf(F),false))});
 // One name box: the first word is the first name, the rest the last name.
 const splitName=v=>{const w=nameCase(String(v||'').replace(/\s+/g,' ').trim()).split(' ').filter(Boolean);return{first:w[0]||'',last:w.slice(1).join(' ')}};
-function collect(){const a=dA(),b=dB(),nm=splitName(F.fullName.value);return{firstName:nm.first,lastName:nm.last,gender:radioVal(form,'gender'),phone:phoneOf(F),status:radioVal(form,'status'),arrival:a,departure:b,events:chosen().map(e=>e.id),plusOnes:rs.plus.map(p=>({name:p.name.trim(),gender:p.gender})),kids:rs.kids,accommodation:F.accommodation.checked,message:F.message.value.trim()}}
+function collect(){const a=dA(),b=dB(),nm=splitName(F.fullName.value);return{firstName:nm.first,lastName:nm.last,gender:radioVal(form,'gender'),side:radioVal(form,'side'),phone:phoneOf(F),status:radioVal(form,'status'),arrival:a,departure:b,events:chosen().map(e=>e.id),plusOnes:rs.plus.map(p=>({name:p.name.trim(),gender:p.gender})),kids:rs.kids,accommodation:F.accommodation.checked,message:F.message.value.trim()}}
 function fill(r){
   F.fullName.value=[r.firstName,r.lastName].filter(Boolean).join(' ');F.message.value=r.message||'';
   const ph=typeof r.phone==='string'?r.phone:'';rs.masked=ph.includes('•');
   if(rs.masked){const cc=ph.startsWith('+91')?'+91':ph.startsWith('+1')?'+1':'';setCc(F,cc);F.phone.value='';F.phone.placeholder=`Keep ${ph.replace(/^\+\d*\s*/,'')}, or type a new one`}
   else if(ph){const cc=ph.startsWith('+91')?'+91':ph.startsWith('+1')?'+1':'';setCc(F,cc);F.phone.value=cc?ph.slice(cc.length):ph}else if(r.phone&&r.phone.number!==undefined){setCc(F,r.phone.cc||'+1');F.phone.value=r.phone.number}
-  ['gender','status'].forEach(n=>setRadio(form,n,r[n]||''));
+  ['gender','status','side'].forEach(n=>setRadio(form,n,r[n]||''));
   const ai=typeof r.arrival==='number'?r.arrival:dIdx(r.arrival),di=typeof r.departure==='number'?r.departure:dIdx(r.departure);
   F.arrival.value=ai>=0?Math.max(FIRSTSTOP,Math.min(ai,LASTSTOP)):FIRSTSTOP;F.departure.value=di>0?Math.max(FIRSTSTOP+1,Math.min(di,LASTSTOP)):LASTSTOP;
   skip.clear();if(r.events&&r.events.length)inRange(dA(),dB()).forEach(e=>{if(!r.events.includes(e.id))skip.add(e.id)});syncRange();
@@ -627,9 +627,10 @@ function histogram(all,cap){const days=all.filter(d=>!d.key||d.key>=RDAYS[0].key
   <table class="plan"><thead><tr><th>Day</th><th>Adults</th><th>Kids</th><th>Tentative</th><th>Staying</th></tr></thead><tbody>${days.map((d,i)=>`<tr><td>${esc(lbl(i))}</td><td>${d.yesAdults}</td><td>${d.yesKids}</td><td>${d.maybe}</td><td>${stay(d,i)}</td></tr>`).join('')}</tbody></table>`}
 const ICO={backup:'<svg viewBox="0 0 24 24"><path d="M4 7h16v12a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/><path d="M3 4h18v3H3zM10 11h4"/></svg>',add:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',refresh:'<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>',ok:'<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',csv:'<svg viewBox="0 0 24 24"><path d="M12 4v11m-5-5 5 5 5-5M5 20h14"/></svg>',out:'<svg viewBox="0 0 24 24"><path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4"/><path d="m15 8 4 4-4 4M19 12H9"/></svg>',filter:'<svg viewBox="0 0 24 24"><path d="M4 5h16l-6 7.5V19l-4 1v-7.5Z"/></svg>',trash:'<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg>',reset:'<svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7"/><path d="M4 4v5h5"/></svg>',clock:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>'};
 const timeOnly=iso=>{const d=new Date(iso);return isNaN(d)?'':d.toLocaleTimeString('en-US',{timeZone:'America/Chicago',hour:'numeric',minute:'2-digit'})+' CT'};
+const TEAM={bride:'👰 Team Bride',groom:'🤵 Team Groom',both:'💞 Both'};
 function admChips(r){const s=r.stats,m=r.mail;
   return[`<span class="ac" title="${esc(fmtTime(r.generatedAt))}">${ICO.clock}<b id="adm-upd">${esc(timeOnly(r.generatedAt))}</b></span>`,`<span class="ac g"><b>${s.responses.total}</b> response${s.responses.total===1?'':'s'}</span>`,
-    s.responses.withdrawn?`<span class="ac m"><b>${s.responses.withdrawn}</b> withdrawn</span>`:'',s.dedup&&s.dedup.skipped?`<span class="ac" title="Family members who replied separately are counted once"><b>${s.dedup.skipped}</b> counted once</span>`:'',
+    s.responses.withdrawn?`<span class="ac m"><b>${s.responses.withdrawn}</b> withdrawn</span>`:'',...Object.keys(TEAM).map(k=>{const n=r.rsvps.filter(x=>x.side===k&&x.status!=='no'&&x.status!=='withdrawn').length;return n?`<span class="ac">${TEAM[k]} <b>${n}</b></span>`:''}),s.dedup&&s.dedup.skipped?`<span class="ac" title="Family members who replied separately are counted once"><b>${s.dedup.skipped}</b> counted once</span>`:'',
     m&&m.at?(m.ok?`<span class="ac b" title="Last email ${esc(fmtTime(m.at))}">✉ <b>${m.quota}</b> emails left</span>`:`<span class="ac r" title="${esc(m.error)}">✉ Emails failing</span>`):''].join('')}
 function renderAdmin(quiet){const r=admData,s=r.stats,g=s.accommodation.gender;admSessions=visitSessions(r.visits.log);
   const hc=h=>h.changes.find(c=>c.field==='headcount'),moves=r.history.filter(hc),wk=Date.now()-7*864e5;
@@ -981,7 +982,7 @@ function admRows(){const q=($('#adm-q')?.value||'').toLowerCase(),st=$('#adm-st'
   const hist=id=>admData.history.filter(h=>h.id===id);
   if(admView==='table'){$('#adm-rows').innerHTML=guestTable(list,hist);return}
   $('#adm-rows').innerHTML=list.map(x=>{const going=x.status==='yes'||x.status==='maybe',adults=1+x.plusOnes.length,hs=hist(x.id),name=`${esc(x.firstName)} ${esc(x.lastName)}`;
-    return`<article class="gc"><div class="gc-h"><b>${name}</b><span class="pill ${esc(x.status)}">${STL[x.status]||esc(x.status)}</span></div>
+    return`<article class="gc"><div class="gc-h"><b>${name}</b>${TEAM[x.side]?`<span class="tag-chip team">${TEAM[x.side]}</span>`:''}<span class="pill ${esc(x.status)}">${STL[x.status]||esc(x.status)}</span></div>
     ${going?`<dl class="gc-d"><dt>Party</dt><dd>${party(x)} · ${adults} adult${adults>1?'s':''}${x.kids?`, ${x.kids} kid${x.kids>1?'s':''}`:''}</dd><dt>Dates</dt><dd>${esc(dKey(x.arrival))} → ${esc(dKey(x.departure))}</dd><dt>Stay</dt><dd>${x.accommodation?'<b class="stay">Needs stay</b>':'Not needed'}</dd>${x.plusOnes.length?`<dt>Plus-ones</dt><dd>${x.plusOnes.map(p=>esc([p.name||'Guest',GL[p.gender]||''].filter(Boolean).join(' · '))).join(', ')}</dd>`:''}<dt>Events</dt><dd>${x.events.map(id=>esc((WEDDING.events.find(e=>e.id===id)||{title:id}).title.replace(/ \(.*\)$/,''))).join(', ')||'—'}</dd>${x.gender?`<dt>Gender</dt><dd>${esc(GL[x.gender]||'')}</dd>`:''}</dl>`:''}
     ${x.message?`<p class="gc-note">“${esc(x.message)}”</p>`:''}
     <p class="gc-f">${x.phone?`<a href="${esc('https://wa.me/'+x.phone.replace(/\D/g,''))}" target="_blank" rel="noopener noreferrer">WhatsApp ${esc(x.phone)}</a>`:'<span>No number</span>'}<span>Updated ${esc(fmtTime(x.updatedAt))}</span>${x.source==='admin'?'<span>Added by you</span>':''}</p>

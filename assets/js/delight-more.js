@@ -153,13 +153,13 @@
      '<g class="env"><rect x="3" y="6" width="18" height="13" rx="2" fill="#fff6dc" stroke="#a3162b" stroke-width="1.3"/><path d="M3.6 7l8.4 6.2L20.4 7" fill="none" stroke="#a3162b" stroke-width="1.3"/><circle cx="12" cy="13.4" r="1.8" fill="#a3162b"/></g>',
      '<rect x="3" y="5" width="18" height="14" rx="2" fill="#fff6dc" stroke="#8a6420" stroke-width="1.3"/><path class="ht" d="M12 16.5s-4.2-2.6-4.2-5.2a2.1 2.1 0 0 1 4.2-.9 2.1 2.1 0 0 1 4.2.9c0 2.6-4.2 5.2-4.2 5.2z" fill="#d2414f"/>'];
    $$('.ux-dots button i').forEach((ic,k)=>{if(!ICON[k])return;ic.classList.add('dl-ic');ic.innerHTML=`<svg viewBox="0 0 24 24" aria-hidden="true">${ICON[k]}</svg>`});
-   dots.append(l);
-   l.setAttribute('role','button');l.setAttribute('tabindex','0');l.setAttribute('aria-label','Go to the blessing');l.removeAttribute('aria-hidden');
+   const lb=document.createElement('button');lb.type='button';lb.className='dl-lotus-btn';lb.setAttribute('aria-label','Go to Share');
+   lb.append(l);lb.insertAdjacentHTML('beforeend','<span>Share</span>');dots.append(lb);
    const bless=$('#photos .lead')||$('#photos .signature-scene');
    const toBless=()=>{if(bless)bless.scrollIntoView({behavior:calm()?'auto':'smooth',block:'start'});buzz(8)};
-   l.addEventListener('click',toBless);l.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toBless()}});
+   lb.addEventListener('click',e=>{e.stopPropagation();toBless()});
    let raf=0;const open=()=>{raf=0;const max=document.documentElement.scrollHeight-innerHeight;l.style.setProperty('--o',(max>0?Math.min(1,scrollY/max):0).toFixed(3));
-     const on=!!bless&&bless.getBoundingClientRect().top<innerHeight*.55;dots.classList.toggle('dl-end',on);on?l.setAttribute('aria-current','true'):l.removeAttribute('aria-current')};
+     const on=!!bless&&bless.getBoundingClientRect().top<innerHeight*.55;dots.classList.toggle('dl-end',on);if(on!==(lb.getAttribute('aria-current')==='true')){lb.setAttribute('aria-current',String(on));if(on&&!calm()){lb.classList.add('ux-say');setTimeout(()=>lb.classList.remove('ux-say'),1400)}}};
    addEventListener('scroll',()=>{if(!raf)raf=requestAnimationFrame(open)},{passive:true});open();
  }
 

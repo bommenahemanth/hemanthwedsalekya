@@ -242,7 +242,7 @@ ${shareUrl}`;
    card.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>Download';
    share.append(card);
    const live=document.createElement('div');live.className='ux-live';
-   live.innerHTML=window.HX_LIVE?`<span class="ux-live-dot" aria-hidden="true"></span><b>Live stream</b><a class="btn solid" href="${esc(window.HX_LIVE)}" target="_blank" rel="noopener noreferrer">Watch live</a>`:'<span class="ux-live-dot" aria-hidden="true"></span><b>Live stream</b><span>Coming soon · the link will be here before the wedding</span>';
+   live.innerHTML=window.HX_LIVE?`<span class="ux-live-dot" aria-hidden="true"></span><b>Live stream</b><a class="btn solid" href="${esc(window.HX_LIVE)}" target="_blank" rel="noopener noreferrer">Watch live</a>`:'<span class="ux-live-dot" aria-hidden="true"></span><b>Live stream</b><span>Coming soon</span>';
    share.before(live);
    // On phones the share sheet offers "Save Image" straight to Photos; elsewhere the link downloads the file.
    card.addEventListener('click',async e=>{

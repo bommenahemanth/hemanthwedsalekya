@@ -136,6 +136,16 @@
    s.animate([{transform:`translate(${x}px,${y}px) scale(.4)`,opacity:0},{transform:`translate(${x+6}px,${y-30}px) scale(1) rotate(6deg)`,opacity:1,offset:.25},{transform:`translate(${x-8}px,${y-110}px) rotate(-6deg)`,opacity:1,offset:.7},{transform:`translate(${x+4}px,${y-170}px) rotate(4deg)`,opacity:0}],{duration:2200,easing:'ease-out',fill:'forwards'}).onfinish=()=>s.remove();
  }prev=n}).observe(kidsOut,{childList:true,characterData:true,subtree:true})}
 
+ /* ---------- 21: a heart floats up when an adult +1 is added ---------- */
+ const plusOut=$('#plus-out');
+ if(plusOut){let prev=+plusOut.textContent||0;new MutationObserver(()=>{const n=+plusOut.textContent||0;if(n>prev&&!calm()){
+   const b=$('[data-stepper=plus] [data-d="1"]'),r=b.getBoundingClientRect(),col=['#d2414f','#c9a24a','#e0607a','#a3162b'][n%4];
+   const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('width','26');s.setAttribute('height','26');
+   s.innerHTML=`<path d="M12 21s-7.5-4.6-9.4-9.3C1.2 8.2 3.4 4.5 7 4.5c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.6 0 5.8 3.7 4.4 7.2C19.5 16.4 12 21 12 21z" fill="${col}"/><path d="M7.5 8.2c.6-1 1.6-1.5 2.6-1.4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" fill="none" opacity=".6"/>`;
+   layer.append(s);const x=r.left+r.width/2-13,y=r.top-28;
+   s.animate([{transform:`translate(${x}px,${y}px) scale(.3)`,opacity:0},{transform:`translate(${x-4}px,${y-24}px) scale(1.15)`,opacity:1,offset:.22},{transform:`translate(${x+8}px,${y-90}px) scale(1) rotate(-8deg)`,opacity:1,offset:.65},{transform:`translate(${x-2}px,${y-150}px) scale(.9) rotate(6deg)`,opacity:0}],{duration:1900,easing:'ease-out',fill:'forwards'}).onfinish=()=>s.remove();
+ }prev=n}).observe(plusOut,{childList:true,characterData:true,subtree:true})}
+
  /* ---------- 22: sky lanterns drift up after 6 PM Dallas time ---------- */
  const lan=document.createElement('div');lan.className='dl-lanterns';lan.setAttribute('aria-hidden','true');
  lan.innerHTML=Array.from({length:7},(_,i)=>`<i style="left:${8+i*13+(i%2)*4}%;--s:${10+(i*7)%8}px;--t:${20+(i*5)%12}s;--d:-${(i*3.7).toFixed(1)}s"></i>`).join('');body.append(lan);
