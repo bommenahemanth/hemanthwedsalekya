@@ -331,7 +331,6 @@ document.addEventListener('hx:rsvp',e=>{const st=(e.detail&&e.detail.status)||'s
 document.addEventListener('input',e=>{if(!VISIT.rsvp&&e.target.closest('#rsvp-form')){VISIT.rsvp='started';track('rsvp_start')}},{passive:true});
 document.addEventListener('change',e=>{const t=e.target;if(t.name==='status'&&t.checked&&t.closest('#rsvp-form'))track('rsvp_'+t.value)},{passive:true});
 document.addEventListener('click',e=>{if(e.target.closest('#rsvp-submit'))setTimeout(()=>{if($('#rsvp-form .invalid'))track('rsvp_error')},60)},{passive:true});
-try{localStorage.removeItem('hx-vid')}catch{}
 
 /* ----- RSVP form ----- */
 // 1 Dec to the checkout morning; the indices match the backend's DAYS.
