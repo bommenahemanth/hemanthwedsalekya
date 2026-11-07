@@ -417,12 +417,7 @@ const nameCase=s=>s.toLowerCase().replace(/(^|[\s\-'’.])(\p{L})/gu,(m,p,c)=>p+
 form.addEventListener('focusout',e=>{const t=e.target;if(!t.matches('[name=fullName]'))return;
   const v=nameCase(t.value.replace(/\s+/g,' ').trim());if(v!==t.value)t.value=v});
 function partyText(){const adults=1+rs.plus.length,n=adults+rs.kids;const g=rs.plus.length;$('#party').textContent=`Your party: ${n} ${n>1?'people':'person'} (${n>1?'you':'just you'}${g?` + ${g} guest${g>1?'s':''}`:''}${rs.kids?` + ${rs.kids} kid${rs.kids>1?'s':''}`:''})`;
-  setCollapse($('#stay-wrap'),F.accommodation.checked);if(F.accommodation.checked){const s=dA(),nights=Math.max(0,dB()-s);$('#stay-hint').textContent=nights?`${nights} night${nights>1?'s':''} from ${dayText(s)} · ${n} ${n>1?'people':'person'}`:'No stay needed for these dates'}poSex();msgChips()}
-function poSex(){const box=$('#po-sex'),n=F.accommodation.checked?rs.plus.length:0,sig=n+':'+rs.plus.slice(0,n).map(p=>p.gender).join();if(box.dataset.sig===sig)return;box.dataset.sig=sig;
-  const gl=g=>form.querySelector(`input[name="gender"][value="${g}"]+span svg`)?.outerHTML||'',W={male:'Male',female:'Female'};
-  box.innerHTML=n?`<p class="hint po-sex-h">Your guest${n>1?'s':''}: helps us plan rooms</p>`+rs.plus.map((p,i)=>`<div class="po-sex-row"><span>${esc(p.name)||`Guest${n>1?' '+(i+1):''}`}</span><div class="chips sm" data-clearable role="group" aria-label="Guest${n>1?' '+(i+1):''} gender (optional)">${['male','female'].map(g=>`<label class="chip" title="${W[g]}"><input type="radio" name="pog${i}" value="${g}" aria-label="${W[g]}"${p.gender===g?' checked data-on="1"':''}><span>${gl(g)}${g==='male'?'M':'F'}</span></label>`).join('')}</div></div>`).join(''):''}
-$('#po-sex').addEventListener('change',e=>{const m=/^pog(\d+)$/.exec(e.target.name||''),p=m&&rs.plus[+m[1]];if(!p)return;p.gender=e.target.checked?e.target.value:'';
-  $('#po-sex').dataset.sig=rs.plus.length+':'+rs.plus.map(x=>x.gender).join()});
+  setCollapse($('#stay-wrap'),F.accommodation.checked);if(F.accommodation.checked){const s=dA(),nights=Math.max(0,dB()-s);$('#stay-hint').textContent=nights?`${nights} night${nights>1?'s':''} from ${dayText(s)} · ${n} ${n>1?'people':'person'}`:'No stay needed for these dates'}msgChips()}
 function showGoing(){setCollapse($('#going'),radioVal(form,'status')!=='no');msgChips()}
 form.addEventListener('change',e=>{if(e.target.name==='accommodation')partyText();showGoing()});
 form.addEventListener('input',e=>{const f=e.target.closest('[data-err]');if(f){f.classList.remove('invalid');const er=f.querySelector('.err');if(er)er.textContent=''}});
@@ -1014,20 +1009,17 @@ ed.arrival.innerHTML=RDAYS.slice(0,-1).map((d,i)=>`<option value="${i}">${esc(da
 ed.departure.innerHTML=RDAYS.map((d,i)=>i?`<option value="${i}">${esc(dayText(i))}</option>`:'').join('');
 function edEvents(){const st=ed.status.value,a=+ed.arrival.value,b=+ed.departure.value;$('#ed-events').innerHTML=st==='no'||b<=a?'':inRange(a,b).map(e=>`<li><b>${weekday(e).slice(0,3)} ${e.d} ${MON[e.m-1].slice(0,3)}</b><div>${esc(e.title)}</div></li>`).join('')}
 ['arrival','departure','status'].forEach(n=>ed[n].addEventListener('change',edEvents));
-function edPoRow(p){p=p||{name:'',gender:''};const d=document.createElement('div');d.className='po-ed';d.innerHTML=`<input maxlength="50" placeholder="Name (optional)" aria-label="Plus-one name" value="${esc(p.name)}"><select aria-label="Plus-one gender"><option value="">—</option><option value="male"${p.gender==='male'?' selected':''}>Male</option><option value="female"${p.gender==='female'?' selected':''}>Female</option></select><button type="button" aria-label="Remove plus-one">✕</button>`;$('#ed-po').appendChild(d)}
-$('#ed-po-add').onclick=()=>{if($('#ed-po').children.length<10)edPoRow()};
-$('#ed-po').addEventListener('click',e=>{const b=e.target.closest('button');if(b)b.parentElement.remove()});
-function openEditor(x){edId=x?x.id:null;$('#ed-title').textContent=x?`Edit ${x.firstName} ${x.lastName}`:'Add guest';$('#ed-error').textContent='';ed.reset();$('#ed-po').innerHTML='';
+function openEditor(x){edId=x?x.id:null;$('#ed-title').textContent=x?`Edit ${x.firstName} ${x.lastName}`:'Add guest';$('#ed-error').textContent='';ed.reset();
   if(x){ed.firstName.value=x.firstName;ed.lastName.value=x.lastName;const ph=x.phone||'',cc=ph.startsWith('+91')?'+91':ph.startsWith('+1')?'+1':ph?'other':'+1';ed.cc.value=cc;ed.phone.value=cc==='other'?ph:ph.slice(cc.length);
     ed.status.value=x.status==='withdrawn'?'no':x.status;ed.gender.value=x.gender||'';ed.side.value=x.side||'';const ai=dIdx(x.arrival),di=dIdx(x.departure);ed.arrival.value=ai>=0?ai:0;ed.departure.value=di>0?di:RDAYS.length-1;
-    x.plusOnes.forEach(p=>edPoRow(p));ed.kids.value=x.kids||0;ed.accommodation.checked=!!x.accommodation;ed.message.value=x.message||''}
+    ed.extra.value=x.plusOnes.length;ed.kids.value=x.kids||0;ed.accommodation.checked=!!x.accommodation;ed.message.value=x.message||''}
   else{ed.arrival.value=0;ed.departure.value=RDAYS.length-1;ed.kids.value=0}
   edEvents();$('#adm-edit').showModal()}
 ed.addEventListener('submit',async e=>{e.preventDefault();const er=$('#ed-error'),a=+ed.arrival.value,b=+ed.departure.value,st=ed.status.value,evs=st==='no'?[]:inRange(a,b).map(x=>x.id);er.textContent='';
   if(!ed.firstName.value.trim()){er.textContent='First name is required.';return}
   if(st!=='no'&&b<=a){er.textContent='Leaving must be after arriving.';return}
   const rsvp={firstName:ed.firstName.value,lastName:ed.lastName.value,phone:ed.cc.value==='other'?{cc:'',number:ed.phone.value}:{cc:ed.cc.value,number:ed.phone.value},status:st,gender:ed.gender.value,side:ed.side.value,arrival:a,departure:b,events:evs,
-    plusOnes:[...$('#ed-po').children].map(r=>({name:r.querySelector('input').value,gender:r.querySelector('select').value})),kids:Math.max(0,Math.min(10,parseInt(ed.kids.value||'0',10)||0)),accommodation:ed.accommodation.checked,message:ed.message.value};
+    plusOnes:Array.from({length:Math.max(0,Math.min(10,parseInt(ed.extra.value||'0',10)||0))},(_,i)=>((edId&&admData.rsvps.find(r=>r.id===edId)||{plusOnes:[]}).plusOnes[i])||{name:'',gender:''}),kids:Math.max(0,Math.min(10,parseInt(ed.kids.value||'0',10)||0)),accommodation:ed.accommodation.checked,message:ed.message.value};
   const was=edId&&admData.rsvps.find(r=>r.id===edId);if(was)['email','travel','flight','food'].forEach(k=>rsvp[k]=was[k]||'');
   const btn=ed.querySelector('[type=submit]');btn.disabled=true;
   try{const r=await api({action:'adminSave',password:admPw,id:edId,rsvp});if(r.ok){$('#adm-edit').close();await reloadAdmin();toast(edId?'Saved':'Guest added')}else er.textContent=r.error==='exists'?'Another RSVP already uses this WhatsApp number.':r.error==='invalid'?'Please check: '+Object.keys(r.fields||{}).join(', '):'Could not save.'}
