@@ -438,13 +438,13 @@ function fieldError(k,m){const el=form.querySelector(`[data-err="${k}"]`);if(!el
 F.phone.addEventListener('blur',()=>{if(F.phone.value)fieldError('phone',phoneError(phoneOf(F),false))});
 // One name box: the first word is the first name, the rest the last name.
 const splitName=v=>{const w=nameCase(String(v||'').replace(/\s+/g,' ').trim()).split(' ').filter(Boolean);return{first:w[0]||'',last:w.slice(1).join(' ')}};
-function collect(){const a=dA(),b=dB(),nm=splitName(F.fullName.value);return{firstName:nm.first,lastName:nm.last,gender:radioVal(form,'gender'),side:radioVal(form,'side'),phone:phoneOf(F),status:radioVal(form,'status'),arrival:a,departure:b,events:chosen().map(e=>e.id),plusOnes:rs.plus.map(p=>({name:p.name.trim(),gender:p.gender})),kids:rs.kids,accommodation:F.accommodation.checked,message:F.message.value.trim()}}
+function collect(){const a=dA(),b=dB(),nm=splitName(F.fullName.value);return{firstName:nm.first,lastName:nm.last,gender:rs.mode==='edit'?rs.gender||'':'',side:radioVal(form,'side'),phone:phoneOf(F),status:radioVal(form,'status'),arrival:a,departure:b,events:chosen().map(e=>e.id),plusOnes:rs.plus.map(p=>({name:p.name.trim(),gender:p.gender})),kids:rs.kids,accommodation:F.accommodation.checked,message:F.message.value.trim()}}
 function fill(r){
   F.fullName.value=[r.firstName,r.lastName].filter(Boolean).join(' ');F.message.value=r.message||'';
   const ph=typeof r.phone==='string'?r.phone:'';rs.masked=ph.includes('•');
   if(rs.masked){const cc=ph.startsWith('+91')?'+91':ph.startsWith('+1')?'+1':'';setCc(F,cc);F.phone.value='';F.phone.placeholder=`Keep ${ph.replace(/^\+\d*\s*/,'')}, or type a new one`}
   else if(ph){const cc=ph.startsWith('+91')?'+91':ph.startsWith('+1')?'+1':'';setCc(F,cc);F.phone.value=cc?ph.slice(cc.length):ph}else if(r.phone&&r.phone.number!==undefined){setCc(F,r.phone.cc||'+1');F.phone.value=r.phone.number}
-  ['gender','status','side'].forEach(n=>setRadio(form,n,r[n]||''));
+  ['status','side'].forEach(n=>setRadio(form,n,r[n]||''));rs.gender=r.gender||'';
   const ai=typeof r.arrival==='number'?r.arrival:dIdx(r.arrival),di=typeof r.departure==='number'?r.departure:dIdx(r.departure);
   F.arrival.value=ai>=0?Math.max(FIRSTSTOP,Math.min(ai,LASTSTOP)):FIRSTSTOP;F.departure.value=di>0?Math.max(FIRSTSTOP+1,Math.min(di,LASTSTOP)):LASTSTOP;
   skip.clear();if(r.events&&r.events.length)inRange(dA(),dB()).forEach(e=>{if(!r.events.includes(e.id))skip.add(e.id)});syncRange();
