@@ -225,12 +225,6 @@ async function api(payload,retry=1){
 }
 const store={get(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch{return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}},del(k){try{localStorage.removeItem(k)}catch{}}};
 
-/* ----- How many have RSVP'd: fetched once, when the RSVP section comes near. ----- */
-(()=>{const sec=document.getElementById('rsvp'),out=document.getElementById('rsvp-count');if(!sec||!out||!WEDDING.apiUrl||!('IntersectionObserver' in window))return;
-  const io=new IntersectionObserver(es=>{if(!es.some(e=>e.isIntersecting))return;io.disconnect();
-    api({action:'count'}).then(r=>{const n=Number(r&&r.rsvps)||0;if(n>0){out.textContent=`${n} ${n===1?'person has':'people have'} RSVP’d so far 🎉`;out.hidden=false}}).catch(()=>{})},{rootMargin:'400px 0px'});
-  io.observe(sec)})();
-
 /* ----- Wedding-day mode: on event days today's event comes first, with directions and a self check-in.
    Preview any moment with ?day=2026-12-03T09:00 (Central). ----- */
 {const q=new URLSearchParams(location.search).get('day'),t0=Date.now(),base=q&&Date.parse(q.length<=16?q+':00-06:00':q);
